@@ -6,6 +6,7 @@ open import Data.Fin using (Fin; opposite; inject₁) renaming (zero to iz; suc 
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
 open import Data.Nat.Properties using (suc-injective)
+open import Data.Fin.Properties using (opposite-involutive)
 
 2* : ℕ → ℕ
 2* zero = 0
@@ -214,7 +215,9 @@ split : ∀ {n} → (i : Fin (toN n)) → (j : Fin (toN n)) → (opposite i ≡ 
 split {N1} iz iz p = iz , iz
 split {D1 ⟨ n ⟩ D1} iz (is j) p = iz , il
 split {D1 ⟨ n ⟩ D1} (is i) iz p = il , iz
-split {D1 ⟨ n ⟩ D1} (is i) (is j) p = (is {!   !}) , (is {!   !})
+split {D1 ⟨ n ⟩ D1} (is i) (is j) p with opposite i
+... | is j' = is (proj₁ rec), is (proj₂ rec)
+    where rec = split {n} (opposite j') j' (opposite-involutive j')
 
 toF : ∀ {n} → Idx n → Fin (toN n)
 toF 0b₁ = iz
@@ -222,7 +225,6 @@ toF 0f₁₁ = iz
 toF {D1 ⟨ n ⟩ D1} (i 1₁₁) = is (inject₁ (toF i))
 toF {D1 ⟨ n ⟩ D1} 0r₁₁ = il
 
--- 2 index from different direction race for target
 fromF' : ∀ {n} → Fin (toNL n) → Fin (toNR n) → Idx n
 fromF' {N1} iz iz = 0b₁
 fromF' {D1 ⟨ n ⟩ D1} iz iz = 0f₁₁ -- should not happen when called from fromF
@@ -255,6 +257,8 @@ irsucc 0b₁ = 0f₁₁
 irsucc {D1 ⟨ n ⟩ D1} 0f₁₁ = 0f₁₁
 irsucc {df ⟨ n ⟩ D1} (i 1₁₁) = (irsucc i) 1₁₁
 irsucc {d ⟨ n ⟩ D1} 0r₁₁ = ilast (incR≢0 n) 1₁₁
+
+-- fromF-correct : ∀ {n} (i : Fin (toN n)) → toF (fromF i) ≡ i
 
 -- ifirst-correct : ∀ {n} toF ifirst ≡ iz
 -- ilsucc-correct : ∀ {n} → (i : Idx n) → toF (ilsucc i) ≡ is (toF i)
