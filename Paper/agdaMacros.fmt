@@ -1,0 +1,164 @@
+
+\definecolor{suppressed}{RGB}{225,225,225}
+\definecolor{goal}{RGB}{209,243,205}
+\newcommand{\highlight}[2]{\smash{\text{\colorbox{#1}{\kern-.1em\vphantom{\vrule height 1.35ex depth 0.16ex}\smash{\ensuremath{#2}}\kern-.1em}}}}
+
+%format (SUPPRESSED(t)) = "\highlight{suppressed}{" t "}"
+%format (GOAL(t)(i)) = "\highlight{goal}{\textbf\{\," t "\,\textbf\}_{\kern1pt" i "}}"
+%format G0 = "\textbf{0}"
+%format G1 = "\textbf{1}"
+%format G2 = "\textbf{2}"
+%format G3 = "\textbf{3}"
+%format G4 = "\textbf{4}"
+%format G5 = "\textbf{5}"
+%format G6 = "\textbf{6}"
+%format G7 = "\textbf{7}"
+%format G8 = "\textbf{8}"
+%format G9 = "\textbf{9}"
+%format G10 = "\textbf{10}"
+%format G11 = "\textbf{11}"
+%format ?0 = "\mathrm{?_0}"
+%format ?1 = "\mathrm{?_1}"
+%format ?2 = "\mathrm{?_2}"
+%format ?3 = "\mathrm{?_3}"
+%format ?4 = "\mathrm{?_4}"
+%format ?5 = "\mathrm{?_5}"
+%format ?6 = "\mathrm{?_6}"
+%format ?7 = "\mathrm{?_7}"
+%format ?8 = "\mathrm{?_8}"
+%format ?9 = "\mathrm{?_9}"
+%format ?10 = "\mathrm{?_{10}}"
+%format ?11 = "\mathrm{?_{11}}"
+
+\newcommand{\ignorenext}[1]{}
+
+%format (sub(x)) = "\unskip_{" x "}"
+%format (C(n)(k)) = "\unskip^{" n "}_{" k "}"
+%format (CHOOSE (n) (k)) = "C{}^{" n "}_{" k "}"
+
+%format @ = "\unskip@\ignorenext"
+%format =' = "\unskip=\ignorenext"
+%format →' = "\kern-.345em\mathrlap{\to}"
+%format ↝ = "\unskip\leadsto\ignorenext"
+%format ⇉ = "\unskip\rightrightarrows\ignorenext"
+%format ⇉' = "{\rightrightarrows}"
+%format _⇉_ = _ "{\rightrightarrows}" _
+%format ∘ = "\unskip\mathrel\cdot\ignorenext"
+%format _∘_ = _ "\kern1pt{\cdot}\kern.5pt" _
+%format ⊗ = "\unskip\otimes\ignorenext"
+%format ≡ = "\unskip\equiv\ignorenext"
+%format ∈ = "\unskip\in\ignorenext"
+%format [ = "[\kern-2pt"
+%format ] = "\kern-2pt]"
+%format Σ[ = Σ [
+%format ∀[ = ∀ [
+%format _∷_ = _ "\kern.5pt" ∷ _
+%format ∷_ = ∷ _
+%format _∷ = _ "\kern.5pt" ∷
+%format ᴮᵀ = "_{\Conid{BT}}"
+%format ∷ᴮᵀ = ∷ ᴮᵀ
+%format _∷ᴮᵀ_ = _ "\kern.5pt" ∷ᴮᵀ _
+%format _∷ᴮᵀ = _ "\kern.5pt" ∷ᴮᵀ
+%format > = "\unskip>\ignorenext"
+%format GEQ = "\unskip\ge\ignorenext"
+%format ≤ = "\unskip\le\ignorenext"
+%format < = "\unskip<\ignorenext"
+%format ≤↑ = "\unskip\mathrel{\le_\uparrow}\ignorenext"
+%format _≤↑_ = _ "\kern.5pt{\le_\uparrow}" _
+%format ↓≤ = "\unskip\mathrel{_\downarrow\kern-.8pt{\le}}\ignorenext"
+%format _↓≤_ = _ "\kern.5pt{_\downarrow\kern-.8pt{\le}}" _
+%format ↓≤' = "{_\downarrow\kern-.8pt{\le}}"
+%format LDOTS = "\ldots"
+
+%format mapB = map "_{" B "}"
+%format unTipB = unTip "_{" B "}"
+%format zipBWith = zip "_{" B "}\kern-1.75pt" With
+%format B' = B "^\prime"
+%format (B'_(n)(k)) = B' "{}^{" n "}_{" k "}"
+%format testB' = test B'
+%format (BT_(n)(k)) = BT "^{" n "}_{" k "}"
+%format mapBT = map ᴮᵀ
+%format zipBTWith = zip ᴮᵀ "\kern-1pt" With
+%format Fun = "\text{\textbf{\textsf{Fun}}}"
+%format Fam' = "\text{\textbf{\textsf{Fam}}}"
+%format mapExactly = map "_{" Exactly "}"
+
+%format 0 = "\mathrm 0"
+%format 1 = "\mathrm 1"
+%format 2 = "\mathrm 2"
+%format 3 = "\mathrm 3"
+
+\newcommand{\Con}[1]{\mathbf{#1}}
+
+%format bin = "\Con{bin}"
+%format exactly = "\Con{exactly}"
+%format refl = "\Con{refl}"
+%format base = "\Con{base}"
+%format step = "\Con{step}"
+%format suc = "\Con{suc}"
+%format tipZ = "\Con{tip_z}"
+%format tipS = "\Con{tip_s}"
+%format tt = "\Con{tt}"
+%format zero = "\Con{zero}"
+
+\newcommand{\Var}[1]{\mathit{#1}}
+
+%format D = "\Var D"
+%format F = "\Var F"
+%format F' = "\Var F^\prime"
+%format G = "\Var G"
+%format G' = "\Var G^\prime"
+%format H = "\Var H"
+%format K = "\Var K"
+%format a = "\Var a"
+%format b = "\Var b"
+%format c = "\Var c"
+%format d = "\Var d"
+%format e = "\Var e"
+%format f = "\Var f"
+%format f' = "\Var f^\prime"
+%format g = "\Var g"
+%format h = "\Var h"
+%format i = "\Var i"
+%format k = "\Var k"
+%format m = "\Var m"
+%format n = "\Var n"
+%format p = "\Var p"
+%format param = "\Var{param}"
+%format pz = "\Var{pz}"
+%format ps = "\Var{ps}"
+%format q = "\Var q"
+%format qz = "\Var{qz}"
+%format qs = "\Var{qs}"
+%format r = "\Var r"
+%format s = "\Var s"
+%format t = "\Var t"
+%format u = "\Var u"
+%format v = "\Var v"
+%format ws = "\Var ws"
+%format x = "\Var x"
+%format x₁ = "{\Var x}_{1}"
+%format xs = "\Var xs"
+%format y = "\Var y"
+%format ys = "\Var ys"
+%format z = "\Var z"
+%format zs = "\Var zs"
+%format α = "\alpha"
+%format α' = "\alpha^\prime"
+%format β = "\beta"
+%format γ = "\gamma"
+%format δ = "\delta"
+
+%format sn = 1 + n
+%format ssn = 2 + n
+%format sssn = 3 + n
+%format sk = 1 + k
+%format ssk = 2 + k
+%format sssk = 3 + k
+
+%format n>k = n "{>}" k
+%format nGEQk = n "{\geq}" k
+%format skGEQk = sk "{\geq}" k
+%format nGEQsk = n "{\geq}" sk
+
+%format BLANK = "~~"

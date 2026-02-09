@@ -1,0 +1,12 @@
+
+*.aux
+
+*.blg
+
+*.log
+
+Paper/ds-num.pdf
+
+Paper/ds-num.tex
+
+*.out
