@@ -101,13 +101,15 @@ The |List| datatype is obtained by ornamenting the |Suc| constructor with a valu
 Many operations on lists have their natural-number counterparts: |tail| is decrementing by one, and list |append| is addition.
 By indexing lists by unary natural numbers, we get the type |Vec| --- length-constrained lists, whose |append| operation has only one ``reasonable'' definition enforced by its type.
 
-The correspondence extend to other representations of natural numbers.
+This correspondence extend to other representations of natural numbers.
 As noted by \citet{Okasaki:99:Purely}, data structures resembling numerical representations are surprisingly common, but the connection is not often made explicit.
-Okasaki devoted an entire chapter to such data structures, covering \todo{more}
+Okasaki devoted an entire chapter to such data structures and presented several implementations of one-sided random-access lists, based several representations of binary numbers, that support |cons|, |head|, and |tail| in $O(1)$ worst-case time, and |lookup| in $O(\log n)$ worst-case time.
+\citet{KaplanTarjan:99:Purely} presented a deque with concatenation, inspired by a redundant binary representation of numbers. \todo{say more}
 
-\citet{KaplanTarjan:96:Purely}\todo{what did they do?}
-
-The Finger Tree \cite{HinzePaterson:06:Finger} is a very versatile data structure for sequences, \todo{review Finger Tree and its supposed connection to numbers}
+The Finger Tree \cite{HinzePaterson:06:Finger} is a very versatile data structure for sequences, supporting \todo{review Finger Tree and its supposed connection to numbers}
+``If we trieify a suitable index type based
+on this number system, we obtain so-called finger trees. But that’s a story
+to be told elsewhere.''
 
 In this article, \todo{what we will cover}
 
