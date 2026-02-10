@@ -28,15 +28,15 @@
 \newlist{inlineenum}{enumerate*}{1}
 \setlist[inlineenum]{label=(\arabic*)}
 
-\setlength{\marginparwidth}{1.25cm}
-\usepackage[obeyFinal,color=yellow,textsize=scriptsize%
-%if not draft
-,disable%
-%endif
-]{todonotes}
+% \setlength{\marginparwidth}{1.25cm}
+% \usepackage[obeyFinal,color=yellow,textsize=scriptsize%
+% %if not draft
+% ,disable%
+% %endif
+% ]{todonotes}
 
-\newcommand{\Shin}[1]{\footnote{\color{blue}Shin: #1}}
-\newcommand{\Jeremy}[1]{\footnote{\color{blue}Jeremy: #1}}
+\newcommand{\todo}[1]{{\color{orange}(TODO: #1)}}
+\newcommand{\todonote}[1]{\footnote{\color{blue}Shin: #1}}
 
 \newenvironment{aha}{\medskip}{\unskip\medskip} % for one-line paragraphs
 \makeatletter
@@ -47,8 +47,6 @@
 \newcommand{\csp}{\hspace{.5em minus .1em}}
 \newcommand{\equals}{\enskip=\enskip}
 
-\usepackage{tikzit}
-\input{string.tikzstyles}
 
 \let\Bbbk\relax
 %include agda.fmt
@@ -89,8 +87,29 @@ It turns out that Finger Trees, a versatile data structure for sequences, can be
 
 \maketitle
 
+\section{} % why doesn't this show up?
 
 \section{Introduction}
+
+Every introductory course to functional programming should mention that |List|s are closely related to the unary representation of natural numbers.
+Recall their definitions:
+\begin{code}
+  data Nat     = Zero  | Suc Nat  {-"~~,"-}
+  data List a  = Nil   | Cons a (List a) {-"~~."-}
+\end{code}
+The |List| datatype is obtained by ornamenting the |Suc| constructor with a value.
+Many operations on lists have their natural-number counterparts: |tail| is decrementing by one, and list |append| is addition.
+By indexing lists by unary natural numbers, we get the type |Vec| --- length-constrained lists, whose |append| operation has only one ``reasonable'' definition enforced by its type.
+
+The correspondence extend to other representations of natural numbers.
+As noted by \citet{Okasaki:99:Purely}, data structures resembling numerical representations are surprisingly common, but the connection is not often made explicit.
+Okasaki devoted an entire chapter to such data structures, covering \todo{more}
+
+\citet{KaplanTarjan:96:Purely}\todo{what did they do?}
+
+The Finger Tree \cite{HinzePaterson:06:Finger} is a very versatile data structure for sequences, \todo{review Finger Tree and its supposed connection to numbers}
+
+In this article, \todo{what we will cover}
 
 \section{Lists, Unary, and Binary Numbers}
 
@@ -104,9 +123,7 @@ It turns out that Finger Trees, a versatile data structure for sequences, can be
 
 \section{Conclusions}
 
-\citet{HinzePaterson:06:Finger}
 \cite{Claessen:20:Finger}
-\cite{Okasaki:99:Purely}
 \cite{HinzeSwierstra:22:Calculating}
 
 \bibliographystyle{ACM-Reference-Format}
