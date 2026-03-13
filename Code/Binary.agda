@@ -35,14 +35,14 @@ data Binary : Set where
 ------------------------------------------------------------------------
 
 -- Digit to ℕ
-Dtoℕ : Digit → ℕ
-Dtoℕ D0 = 0
-Dtoℕ D1 = 1
+DtoN : Digit → ℕ
+DtoN D0 = 0
+DtoN D1 = 1
 
 -- Binary to ℕ
-toℕ : Binary → ℕ
-toℕ B0        = 0
-toℕ (d ⟨ b ⟩) = Dtoℕ d + 2* (toℕ b)
+toN : Binary → ℕ
+toN B0        = 0
+toN (d ⟨ b ⟩) = DtoN d + 2* (toN b)
 
 -- Increment: worst case O(log n), amortized O(1)
 inc : Binary → Binary
@@ -50,51 +50,55 @@ inc B0         = D1 ⟨ B0 ⟩
 inc (D0 ⟨ b ⟩) = D1 ⟨ b ⟩
 inc (D1 ⟨ b ⟩) = D0 ⟨ inc b ⟩
 
+data Peano-View : Binary → Set where
+    as-zero : Peano-View B0
+    as-succ : (i : Binary) → Peano-View (inc i)
+
 -- Decrement: worst case O((log n)²), amortized O(log n)
 dec : Binary → Binary
 dec B0         = B0
-dec (D0 ⟨ b ⟩) with toℕ b
+dec (D0 ⟨ b ⟩) with toN b
 ... | zero     = B0
 ... | suc n    = D1 ⟨ dec b ⟩
 dec (D1 ⟨ b ⟩) = D0 ⟨ b ⟩
 
-fromℕ : ℕ → Binary
-fromℕ zero    = B0
-fromℕ (suc n) = inc (fromℕ n)
+fromN : ℕ → Binary
+fromN zero    = B0
+fromN (suc n) = inc (fromN n)
 
 ------------------------------------------------------------------------
 -- Correctness lemmas for conversions
 ------------------------------------------------------------------------
 
 -- Increment corresponds to suc
-inc-correct : ∀ b → toℕ (inc b) ≡ suc (toℕ b)
+inc-correct : ∀ b → toN (inc b) ≡ suc (toN b)
 inc-correct B0         = refl
 inc-correct (D0 ⟨ b ⟩) = refl
 inc-correct (D1 ⟨ b ⟩) = cong 2* (inc-correct b)
 
 -- Decrement corresponds to pred
-dec-correct : ∀ b → toℕ (dec b) ≡ pred (toℕ b)
+dec-correct : ∀ b → toN (dec b) ≡ pred (toN b)
 dec-correct B0         = refl
-dec-correct (D0 ⟨ b ⟩) with toℕ b | inspect toℕ b
+dec-correct (D0 ⟨ b ⟩) with toN b | inspect toN b
 ... | zero  | [ eq ]   = refl
 ... | suc n | [ eq ]   = cong suc (cong 2* (trans (dec-correct b) (cong pred eq)))
 dec-correct (D1 ⟨ b ⟩) = refl
 
--- toℕ is a left-inverse of fromℕ
-toℕ-fromℕ : ∀ n → toℕ (fromℕ n) ≡ n
-toℕ-fromℕ zero    = refl
-toℕ-fromℕ (suc n) = trans (inc-correct (fromℕ n)) (cong suc (toℕ-fromℕ n))
+-- toN is a left-inverse of fromN
+toN-fromN : ∀ n → toN (fromN n) ≡ n
+toN-fromN zero    = refl
+toN-fromN (suc n) = trans (inc-correct (fromN n)) (cong suc (toN-fromN n))
 
 ------------------------------------------------------------------------
 -- Properties of Binary representation
 ------------------------------------------------------------------------
 
 -- Example: zero is not uniquely represented
-zero-ambiguous : ∃ λ x → (B0 ≢ x) × (0 ≡ toℕ x )
+zero-ambiguous : ∃ λ x → (B0 ≢ x) × (0 ≡ toN x )
 zero-ambiguous = (D0 ⟨ B0 ⟩) , (λ ()) , refl
 
 -- redundancy: multiple representations map to same ℕ
-redundant : ∃₂ λ x y → (x ≢ y) × (toℕ x ≡ toℕ y)
+redundant : ∃₂ λ x y → (x ≢ y) × (toN x ≡ toN y)
 redundant = B0 , zero-ambiguous
 
 ------------------------------------------------------------------------
@@ -124,7 +128,7 @@ head {_} {D0 ⟨ b ⟩} (more (one x) xs) = x
 head {_} {D1 ⟨ b ⟩} (more zero xs)    = proj₁ (head xs)
 
 -- head' (with proof of non-emptiness): worst case O(log n)
-head' : ∀ {A b} → RAL A b → (toℕ b ≢ 0) → A
+head' : ∀ {A b} → RAL A b → (toN b ≢ 0) → A
 head' nil               p = ⊥-elim (p refl)
 head' (more zero xs)    p = proj₁ (head' xs (2*n≢0⇒n≢0 p))
 head' (more (one x) xs) p = x
@@ -133,9 +137,9 @@ head' (more (one x) xs) p = x
 -- can be optimized by storing length
 tail : ∀ {A b} → RAL A b → RAL A (dec b)
 tail {A} {B0}       nil = nil
-tail {A} {D0 ⟨ b ⟩} (more zero xs) with toℕ b | inspect toℕ b
+tail {A} {D0 ⟨ b ⟩} (more zero xs) with toN b | inspect toN b
 ... | zero  | [ eq ] = nil
-... | suc n | [ eq ] = more (one (proj₂ (head' xs (1+n≢0 (toℕ b) eq)))) (tail xs)
+... | suc n | [ eq ] = more (one (proj₂ (head' xs (1+n≢0 (toN b) eq)))) (tail xs)
 tail {A} {D1 ⟨ b ⟩} (more (one x) xs) = more zero xs
 
 -- Indices for Binary RAL (like Fin for ℕ)

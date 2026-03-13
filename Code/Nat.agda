@@ -17,13 +17,13 @@ data Nat : Set where
 -- Conversion between Nat and ℕ
 
 -- Digit to ℕ
-Dtoℕ : Digit → ℕ
-Dtoℕ D1 = 1
+DtoN : Digit → ℕ
+DtoN D1 = 1
 
 -- Nat to ℕ
-toℕ : Nat → ℕ
-toℕ N0        = 0
-toℕ (d ⟨ n ⟩) = Dtoℕ d + toℕ n
+toN : Nat → ℕ
+toN N0        = 0
+toN (d ⟨ n ⟩) = DtoN d + toN n
 
 -- Increment in O(1)
 inc : Nat → Nat
@@ -39,18 +39,18 @@ add N0 m = m
 add (D1 ⟨ n ⟩) m = D1 ⟨ (add n m) ⟩
 
 -- Build a Nat from ℕ
-fromℕ : ℕ → Nat
-fromℕ zero    = N0
-fromℕ (suc n) = inc (fromℕ n)
+fromN : ℕ → Nat
+fromN zero    = N0
+fromN (suc n) = inc (fromN n)
 
 -- Correctness lemmas
 
 -- Increment corresponds to suc
-inc-correct : ∀ n → toℕ (inc n) ≡ suc (toℕ n)
+inc-correct : ∀ n → toN (inc n) ≡ suc (toN n)
 inc-correct n = refl
 
 -- Decrement corresponds to pred
-dec-correct : ∀ n → toℕ (dec n) ≡ pred (toℕ n)
+dec-correct : ∀ n → toN (dec n) ≡ pred (toN n)
 dec-correct N0        = refl
 dec-correct (D1 ⟨ n ⟩) = refl
 
@@ -58,15 +58,16 @@ dec-correct (D1 ⟨ n ⟩) = refl
 dec-inc≡id : ∀ n → dec (inc n) ≡ n
 dec-inc≡id n = refl
 
--- toℕ is a left-inverse of fromℕ
-toℕ-fromℕ : ∀ n → toℕ (fromℕ n) ≡ n
-toℕ-fromℕ zero    = refl
-toℕ-fromℕ (suc n) = cong suc (toℕ-fromℕ n)
+-- toN is a left-inverse of fromN
+toN-fromN : ∀ n → toN (fromN n) ≡ n
+toN-fromN zero    = refl
+toN-fromN (suc n) = cong suc (toN-fromN n)
 
--- toℕ is a right-inverse of fromℕ
-fromℕ-toℕ : ∀ n → fromℕ (toℕ n) ≡ n
-fromℕ-toℕ N0        = refl
-fromℕ-toℕ (D1 ⟨ n ⟩) = cong inc (fromℕ-toℕ n)
+
+-- toN is a right-inverse of fromN
+fromN-toN : ∀ n → fromN (toN n) ≡ n
+fromN-toN N0        = refl
+fromN-toN (D1 ⟨ n ⟩) = cong inc (fromN-toN n)
 
 -- Random Access List (RAL) indexed by Nat
 -- Behaves like a length-indexed vector
@@ -101,8 +102,8 @@ append (more (one x) xs) ys = more (one x) (append xs ys)
 -- Indices for RAL (analogous to Fin for Nat)
 
 data Idx : Nat → Set where
-    0n₁ : ∀ {n} →         Idx (D1 ⟨ n ⟩)   -- zero index
-    _1₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)   -- successor index
+    0n₁ : ∀ {n} →         Idx (D1 ⟨ n ⟩)
+    _1₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)
 
 -- Lookup in O(n)
 lookup : ∀ {A n} → RAL A n → Idx n → A
