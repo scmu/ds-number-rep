@@ -12,3 +12,5 @@ Paper/ds-num.tex
 *.out
 
 *.ptb
+
+*.bbl

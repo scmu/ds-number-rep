@@ -1,39 +1,26 @@
-%let anonymous = False
-%let draft = False
 
 %% lhs2TeX --agda ds-num.lhs | pdflatex --jobname=ds-num
 
-\documentclass[acmsmall,fleqn,screen,nonacm]{acmart}
-\settopmatter{printccs=false, printacmref=false}
-\setcopyright{none}
+\documentclass[pearl,fleqn,review]{jfp-epi}
 
-\usepackage[capitalise,noabbrev]{cleveref}
+%\usepackage[capitalise,noabbrev]{cleveref}
 \citestyle{acmauthoryear}
-\crefformat{equation}{#2#1#3}
 
 \usepackage{mathtools}
-\usepackage{varwidth}
 \usepackage{pifont}
 
 \usepackage{mdframed}
 \newenvironment{temp}{\begin{mdframed}[backgroundcolor=red!7, linewidth=0, skipabove=1ex, leftmargin=1ex, rightmargin=0, innerleftmargin=0, innerrightmargin=0, innertopmargin=0, innerbottommargin=0]\setlength{\abovedisplayskip}{0ex}\raisebox{-\height-3pt}[0pt][0pt]{\hspace{.965\textwidth}\color{red}\huge\ding{56}}}{\end{mdframed}}
-%\definecolor{SkyBlue}{HTML}{D9F6FF}
-%\newenvironment{final}{\begin{mdframed}[backgroundcolor=SkyBlue, linewidth=0, skipabove=1ex, leftmargin=1ex, rightmargin=0, innerleftmargin=0, innerrightmargin=0, innertopmargin=0, innerbottommargin=0]}{\end{mdframed}}
 
 \usepackage{wrapfig}
 \usepackage{xifthen}
-\newcommand{\varcitet}[3][]{\citeauthor{#2}#3~[\ifthenelse{\isempty{#1}}{\citeyear{#2}}{\citeyear[#1]{#2}}]}
 
 \usepackage[inline]{enumitem} % for environment enumerate*
 \newlist{inlineenum}{enumerate*}{1}
 \setlist[inlineenum]{label=(\arabic*)}
 
-% \setlength{\marginparwidth}{1.25cm}
-% \usepackage[obeyFinal,color=yellow,textsize=scriptsize%
-% %if not draft
-% ,disable%
-% %endif
-% ]{todonotes}
+\DeclareMathAlphabet{\mathsf}{OT1}{cmss}{m}{n}
+\DeclareMathAlphabet{\mathsfb}{OT1}{cmss}{bx}{n}
 
 \newcommand{\todo}[1]{{\color{orange}(TODO: #1)}}
 \newcommand{\todonote}[1]{\footnote{\color{blue}Shin: #1}}
@@ -51,13 +38,6 @@
 \let\Bbbk\relax
 %include agda.fmt
 %include agdaMacros.fmt
-
-%format ⟨ = "\langle"
-%format ⟩ = "\rangle"
-%format ≢ = "\not\equiv"
-%format × = "\times"
-%format ∃ = "\exists"
-%format λ = "\lambda"
 
 \begin{document}
 

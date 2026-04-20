@@ -70,36 +70,12 @@
 %format ↓≤' = "{_\downarrow\kern-.8pt{\le}}"
 %format LDOTS = "\ldots"
 
-%format mapB = map "_{" B "}"
-%format unTipB = unTip "_{" B "}"
-%format zipBWith = zip "_{" B "}\kern-1.75pt" With
-%format B' = B "^\prime"
-%format (B'_(n)(k)) = B' "{}^{" n "}_{" k "}"
-%format testB' = test B'
-%format (BT_(n)(k)) = BT "^{" n "}_{" k "}"
-%format mapBT = map ᴮᵀ
-%format zipBTWith = zip ᴮᵀ "\kern-1pt" With
-%format Fun = "\text{\textbf{\textsf{Fun}}}"
-%format Fam' = "\text{\textbf{\textsf{Fam}}}"
-%format mapExactly = map "_{" Exactly "}"
-
 %format 0 = "\mathrm 0"
 %format 1 = "\mathrm 1"
 %format 2 = "\mathrm 2"
 %format 3 = "\mathrm 3"
 
 \newcommand{\Con}[1]{\mathbf{#1}}
-
-%format bin = "\Con{bin}"
-%format exactly = "\Con{exactly}"
-%format refl = "\Con{refl}"
-%format base = "\Con{base}"
-%format step = "\Con{step}"
-%format suc = "\Con{suc}"
-%format tipZ = "\Con{tip_z}"
-%format tipS = "\Con{tip_s}"
-%format tt = "\Con{tt}"
-%format zero = "\Con{zero}"
 
 \newcommand{\Var}[1]{\mathit{#1}}
 
@@ -162,3 +138,12 @@
 %format nGEQsk = n "{\geq}" sk
 
 %format BLANK = "~~"
+
+%format ⟨ = "\langle"
+%format ⟩ = "\rangle"
+%format ≢ = "\not\equiv"
+%format × = "\times"
+%format ∃ = "\exists"
+%format ∀ = "\forall"
+%format λ = "\lambda"
+%format ℕ = "\mathbf{N}"
