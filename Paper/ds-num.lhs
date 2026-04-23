@@ -78,17 +78,18 @@ It turns out that Finger Trees, a versatile data structure for sequences, can be
 
 \section{Introduction}
 
-Every introductory course to functional programming should mention that |List|s are closely related to the unary representation of natural numbers.
+Every introductory course to functional programming should mention that |List|s are closely related to the unary representation of natural numbers, |ℕ|.
 Recall their definitions:
 \begin{code}
-  data Nat : Set where
-    Zero  : Nat
-    Suc   : Nat → Nat {-"~~,"-}
+  data ℕ : Set where
+    Zero  : ℕ
+    Suc   : ℕ → ℕ {-"~~,"-}
   data List (a : Set) : Set where
     Nil   : List a
     Cons  : a → List a → List a {-"~~."-}
 \end{code}
-The |List| datatype is obtained by ornamenting the |Suc| constructor with a value.
+The |List| datatype is obtained by ornamenting the |Suc| constructor with a value of type |a|;
+by traversing the list, removing the |a| and replacing |Nil| and |Cons| respectively by |Zero| and |Suc|, we get the length of the list.
 Many operations on lists have their natural-number counterparts: |tail| is decrementing by one, and list |append| is addition.
 By indexing lists by unary natural numbers, we get the type |Vec| --- length-constrained lists, whose |append| operation has only one ``reasonable'' definition enforced by its type.
 
@@ -106,29 +107,32 @@ In this article, \todo{what we will cover}
 
 \section{Lists, Unary, and Binary Numbers}
 
-Following \citet{HinzeSwierstra:22:Calculating}, we adopt a uniform framework in which every number system is defined by a type of \emph{digits}, a recursive number type built from those digits, and a \emph{semantic function} |toN| mapping numbers to their natural-number value.
-Operations such as increment and decrement are defined on the number type, and their correctness is established by showing that they commute with~|toN|.
-Data structures are then obtained by \emph{indexing} a container type by the number type: each digit is ornamented with data, and structural operations on the container mirror arithmetic operations on the index.
+For the rest of the article, we will present a series of number systems and the data structures derived from them.
+Following \citet{HinzeSwierstra:22:Calculating}, we adopt a uniform framework in which every number system is defined by a type for |Digit|s, based upon which a type |Nat| for natural numbers is defined.
+For each |Nat| we define its semantics by a function |toN : Nat -> ℕ|,
+as well as operations such as increment, decrement, and addition on |Nat|, whose correctness is established by showing that they commute with~|toN|.
+We then construct the data structure corresponding to |Nat| by \emph{indexing} a container type by |Nat|: each digit is ornamented with data, and structural operations on the container mirror arithmetic operations on the index.
 
 \subsection{Unary Numbers}
 
-The simplest instance of this framework uses a single digit.
-A unary natural number is either zero or a digit prepended to a smaller number:
+For completeness we start with unary natural numbers, which is isomorphic to |ℕ|.
+There is only a single digit, |D1|, denoting a "one", and a natural number is represented by counting the occurrences of |D1|s:
 \begin{code}
   data Digit : Set where
     D1 : Digit {-"~~,"-}
+
   data Nat : Set where
     N0    : Nat
-    _⟨_⟩  : Digit → Nat → Nat {-"~~."-}
-\end{code}
-The semantic function sums the digit values along the spine:
-\begin{code}
+    _⟨_⟩  : Digit → Nat → Nat {-"~~,"-}
+
   toN : Nat → ℕ
   toN N0        = 0
   toN (d ⟨ n ⟩)  = DtoN d + toN n {-"~~,"-}
 \end{code}
 where |DtoN D1 = 1|.
-Since the only available digit is |D1|, we recover the standard Peano representation: the number $k$ is represented by $k$ copies of |D1| prepended to |N0|.
+For example, |3| is represented by |D1 ⟨ D1 ⟨ D1 ⟨ N0 ⟩ ⟩ ⟩|.
+
+%Since the only available digit is |D1|, we recover the standard Peano representation: the number $k$ is represented by $k$ copies of |D1| prepended to |N0|.
 
 Increment and decrement are both $O(1)$:
 \begin{code}
@@ -139,7 +143,8 @@ Increment and decrement are both $O(1)$:
   dec N0         = N0
   dec (D1 ⟨ n ⟩)  = n {-"~~."-}
 \end{code}
-Correctness follows immediately --- all proofs reduce to |refl|:
+Addition of two |Nat|s, however, takes $O(m)$ time.
+Correctness of these operations follows immediately --- all proofs reduce to |refl|:
 \begin{code}
   inc-correct : ∀ n → toN (inc n) ≡ suc (toN n)
   inc-correct n = refl {-"~~."-}
@@ -150,10 +155,10 @@ Moreover, |toN| and |fromN| (defined by iterating |inc|) constitute a bijection 
   fromN-toN  : ∀ n → fromN (toN n) ≡ n  {-"~~."-}
 \end{code}
 
-\subsection{Random-Access Lists from Unary Numbers}
-
-The corresponding data structure is a \emph{random-access list} (RAL) indexed by |Nat|.
-Each digit |D1| is ornamented to carry one element of type |A|:
+% \subsection{Random-Access Lists from Unary Numbers} % SCM: joining the two sections together, for a quicker pace
+Now consider the container datatype induced from |Nat|.
+For each number system, we introduce a datatype |Some A d|, indexed by |d : Digit|, denoting a node containing |DtoN d| occurrences of |A|, and a datatype |RAL A n| where |n : Nat|, denoting a random-access list containing |n| elements.
+For |Nat| defined above, the induced |Some| and |RAL| are shown below:
 \begin{code}
   data Some (A : Set) : Digit → Set where
     one : A → Some A D1 {-"~~,"-}
@@ -162,14 +167,14 @@ Each digit |D1| is ornamented to carry one element of type |A|:
     nil   : RAL A N0
     more  : ∀ {d n} → Some A d → RAL A n → RAL A (d ⟨ n ⟩) {-"~~."-}
 \end{code}
-This is precisely the type of length-indexed vectors: |cons| prepends an element in $O(1)$, and |lookup| traverses the spine in $O(n)$ time.
-The index type |Idx| has two constructors corresponding to the two ways of selecting an element: the head element, or a recursive position in the tail.
-
-While conceptually clean, the unary representation suffers from the fact that all operations that traverse the entire structure --- such as |lookup| and |append| --- are $O(n)$.
+The type |Some| contains exactly one element, and |RAL| is isomorphic to |Vec|, the familiar type of length-indexed vectors.
+The operations |cons| and |tail|, respectively corresponding to |inc| and |dec| on |Nat|, are $O(1)$.
+The downside, however, is that |append|, corresponding to addition, takes time proportional to the size of the first argument. The operation |lookup| also has to traverse the entire structure in the worst case and is therefore linear time.
 
 \subsection{Binary Numbers}
 
-To obtain logarithmic-time operations, we switch to binary numbers by extending the digit set to include zero:
+To obtain logarithmic-time operations, we switch to binary numbers.
+We now have two digits, denoting zero and one:
 \begin{code}
   data Digit : Set where
     D0  : Digit
@@ -178,12 +183,15 @@ To obtain logarithmic-time operations, we switch to binary numbers by extending 
     B0    : Binary
     _⟨_⟩  : Digit → Binary → Binary {-"~~."-}
 \end{code}
-The digits are stored least-significant first, and the semantic function is:
+The semantic function is:
 \begin{code}
   toN : Binary → ℕ
-  toN B0        = 0
+  toN B0         = 0
   toN (d ⟨ b ⟩)  = DtoN d + 2 * toN b {-"~~."-}
 \end{code}
+In this article, all numbers are presented least-significant first.
+For example, |D1 ⟨ D0 ⟨ D1 ⟨ D1 ⟨ B0 ⟩ ⟩ ⟩ ⟩| represents the number |13|.
+
 Increment propagates a carry when the least-significant digit is |D1|:
 \begin{code}
   inc : Binary → Binary
