@@ -146,4 +146,4 @@
 %format ∃ = "\exists"
 %format ∀ = "\forall"
 %format λ = "\lambda"
-%format ℕ = "\mathbf{N}"
+%format ℕ = "\mathbb{N}"

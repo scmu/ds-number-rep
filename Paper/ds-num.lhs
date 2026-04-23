@@ -173,7 +173,7 @@ The downside, however, is that |append|, corresponding to addition, takes time p
 
 \subsection{Binary Numbers}
 
-To obtain logarithmic-time operations, we switch to binary numbers.
+A standard trick to achieve logarithmic-time operations is switch to a binary representation.
 We now have two digits, denoting zero and one:
 \begin{code}
   data Digit : Set where
@@ -183,14 +183,14 @@ We now have two digits, denoting zero and one:
     B0    : Binary
     _⟨_⟩  : Digit → Binary → Binary {-"~~."-}
 \end{code}
+To make the connection with lists clear, we present binary numbers least-significant first.
+For example, |D1 ⟨ D0 ⟨ D1 ⟨ D1 ⟨ B0 ⟩ ⟩ ⟩ ⟩| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
 The semantic function is:
 \begin{code}
   toN : Binary → ℕ
   toN B0         = 0
   toN (d ⟨ b ⟩)  = DtoN d + 2 * toN b {-"~~."-}
 \end{code}
-In this article, all numbers are presented least-significant first.
-For example, |D1 ⟨ D0 ⟨ D1 ⟨ D1 ⟨ B0 ⟩ ⟩ ⟩ ⟩| represents the number |13|.
 
 Increment propagates a carry when the least-significant digit is |D1|:
 \begin{code}
@@ -199,7 +199,8 @@ Increment propagates a carry when the least-significant digit is |D1|:
   inc (D0 ⟨ b ⟩)  = D1 ⟨ b ⟩
   inc (D1 ⟨ b ⟩)  = D0 ⟨ inc b ⟩ {-"~~."-}
 \end{code}
-The worst-case cost is $O(\log n)$, since a carry may propagate through every digit; the amortised cost is $O(1)$.
+The worst-case cost for incrementing a number is $O(\log n)$, since a carry may propagate through every digit; the amortised cost, however, is $O(1)$.
+\todo{reason?}
 Correctness is verified by induction, with the carry case appealing to the correctness of doubling:
 \begin{code}
   inc-correct : ∀ b → toN (inc b) ≡ suc (toN b) {-"~~."-}
@@ -214,21 +215,28 @@ More generally, distinct representations can map to the same natural number:
 \end{code}
 witnessed by |B0| and |D0 ⟨ B0 ⟩|.
 As a consequence, the converse direction |fromN-toN : ∀ b → fromN (toN b) ≡ b| does \emph{not} hold: the round-trip through |ℕ| normalises away leading zeros.
+\todo{Redundacy itself shouldn't be a problem... we will introduce redundancy later! Why do we not like |B0|s in this stage?}
 
 \subsection{Random-Access Lists from Binary Numbers}
 
-A binary RAL decorates each digit with data.
-A |D0| digit carries nothing; a |D1| digit carries one element.
-Crucially, at each successive position the element type \emph{doubles} to |A × A|, capturing a complete binary tree of increasing depth:
+Consider the RAL induced by binary numbers.
+The type |Some| how has two cases: when indexed by |D0| it carries nothing, and when indexed by |D1| it carries one element:
 \begin{code}
   data Some (A : Set) : Digit → Set where
     zero  :          Some A D0
-    one   : A →      Some A D1 {-"~~,"-}
-
+    one   : A →      Some A D1 {-"~~."-}
+\end{code}
+The type |RAL A n| contains |toN n| elements.
+To achieve that, at each successive position the element type \emph{doubles} to |A × A|, corresponding to the multiplication by |2| in |toN|:
+\begin{code}
   data RAL (A : Set) : Binary → Set where
     nil   : RAL A B0
     more  : ∀ {d b} → Some A d → RAL (A × A) b → RAL A (d ⟨ b ⟩) {-"~~."-}
 \end{code}
+The first element in |RAL A n|, if any, has type |A|;
+the second |A × A|, and the third |(A × A) × (A × A)|.
+They are essentially complete binary trees of increasing depth.
+
 The |cons| operation mirrors |inc|: when the least-significant digit is |D1|, the new element is paired with the existing one and carried to the next level:
 \begin{code}
   cons : ∀ {A b} → A → RAL A b → RAL A (inc b)
