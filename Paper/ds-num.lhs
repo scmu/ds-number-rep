@@ -3,45 +3,9 @@
 
 \documentclass[pearl,fleqn,review]{jfp-epi}
 
-%\usepackage[capitalise,noabbrev]{cleveref}
-\citestyle{acmauthoryear}
-
-\usepackage{mathtools}
-\usepackage{pifont}
-
-\usepackage{mdframed}
-\newenvironment{temp}{\begin{mdframed}[backgroundcolor=red!7, linewidth=0, skipabove=1ex, leftmargin=1ex, rightmargin=0, innerleftmargin=0, innerrightmargin=0, innertopmargin=0, innerbottommargin=0]\setlength{\abovedisplayskip}{0ex}\raisebox{-\height-3pt}[0pt][0pt]{\hspace{.965\textwidth}\color{red}\huge\ding{56}}}{\end{mdframed}}
-
-\usepackage{wrapfig}
-\usepackage{xifthen}
-
-\usepackage[inline]{enumitem} % for environment enumerate*
-\newlist{inlineenum}{enumerate*}{1}
-\setlist[inlineenum]{label=(\arabic*)}
-
-\DeclareMathAlphabet{\mathsf}{OT1}{cmss}{m}{n}
-\DeclareMathAlphabet{\mathsfb}{OT1}{cmss}{bx}{n}
-
-\newcommand{\todo}[1]{{\color{orange}(TODO: #1)}}
-\newcommand{\todonote}[1]{\footnote{\color{blue}Shin: #1}}
-
-\newenvironment{aha}{\medskip}{\unskip\medskip} % for one-line paragraphs
-\makeatletter
-\newcommand{\pause}{\medskip\centerline{$\ast\quad\ast\quad\ast$}\medskip\@@afterindentfalse\@@afterheading} % for a mid-section pause
-\newcommand{\bigpause}{\medskip\centerline{$\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast$}\medskip\@@afterindentfalse\@@afterheading} % to set off the Afterword
-\makeatother
-
-\newcommand{\csp}{\hspace{.5em minus .1em}}
-\newcommand{\equals}{\enskip=\enskip}
-
-
-\let\Bbbk\relax
-%include agda.fmt
-%include agdaMacros.fmt
+%include preamble.tex
 
 \begin{document}
-
-\setlength{\mathindent}{2\parindent}
 
 \author{Wen-Yuan Chan}
 \affiliation{
@@ -123,25 +87,25 @@ There is only a single digit, |D1|, denoting a "one", and a natural number is re
 
   data Nat : Set where
     N0    : Nat
-    _⟨_⟩  : Digit → Nat → Nat {-"~~,"-}
+    _∷_   : Digit → Nat → Nat {-"~~,"-}
 
   toN : Nat → ℕ
-  toN N0        = 0
-  toN (d ⟨ n ⟩)  = DtoN d + toN n {-"~~,"-}
+  toN N0       = 0
+  toN (d ∷ n)  = DtoN d + toN n {-"~~,"-}
 \end{code}
 where |DtoN D1 = 1|.
-For example, |3| is represented by |D1 ⟨ D1 ⟨ D1 ⟨ N0 ⟩ ⟩ ⟩|.
+For example, |3| is represented by |D1 ∷ D1 ∷ D1 ∷ N0|.
 
 %Since the only available digit is |D1|, we recover the standard Peano representation: the number $k$ is represented by $k$ copies of |D1| prepended to |N0|.
 
 Increment and decrement are both $O(1)$:
 \begin{code}
   inc : Nat → Nat
-  inc n = D1 ⟨ n ⟩ {-"~~,"-}
+  inc n = D1 ∷ n {-"~~,"-}
 
   dec : Nat → Nat
-  dec N0         = N0
-  dec (D1 ⟨ n ⟩)  = n {-"~~."-}
+  dec N0          = N0
+  dec (D1 ∷ n)  = n {-"~~."-}
 \end{code}
 Addition of two |Nat|s, however, takes $O(m)$ time.
 Correctness of these operations follows immediately --- all proofs reduce to |refl|:
@@ -164,8 +128,8 @@ For |Nat| defined above, the induced |Some| and |RAL| are shown below:
     one : A → Some A D1 {-"~~,"-}
 
   data RAL (A : Set) : Nat → Set where
-    nil   : RAL A N0
-    more  : ∀ {d n} → Some A d → RAL A n → RAL A (d ⟨ n ⟩) {-"~~."-}
+    nil  : RAL A N0
+    _∷_  : ∀ {d n} → Some A d → RAL A n → RAL A (d ∷ n) {-"~~."-}
 \end{code}
 The type |Some| contains exactly one element, and |RAL| is isomorphic to |Vec|, the familiar type of length-indexed vectors.
 The operations |cons| and |tail|, respectively corresponding to |inc| and |dec| on |Nat|, are $O(1)$.
@@ -181,23 +145,23 @@ We now have two digits, denoting zero and one:
     D1  : Digit {-"~~,"-}
   data Binary : Set where
     B0    : Binary
-    _⟨_⟩  : Digit → Binary → Binary {-"~~."-}
+    _∷_  : Digit → Binary → Binary {-"~~."-}
 \end{code}
 To make the connection with lists clear, we present binary numbers least-significant first.
-For example, |D1 ⟨ D0 ⟨ D1 ⟨ D1 ⟨ B0 ⟩ ⟩ ⟩ ⟩| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
+For example, |D1 ∷ D0 ∷ D1 ∷ D1 ∷ B0| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
 The semantic function is:
 \begin{code}
   toN : Binary → ℕ
-  toN B0         = 0
-  toN (d ⟨ b ⟩)  = DtoN d + 2 * toN b {-"~~."-}
+  toN B0       = 0
+  toN (d ∷ b)  = DtoN d + 2 * toN b {-"~~."-}
 \end{code}
 
 Increment propagates a carry when the least-significant digit is |D1|:
 \begin{code}
   inc : Binary → Binary
-  inc B0          = D1 ⟨ B0 ⟩
-  inc (D0 ⟨ b ⟩)  = D1 ⟨ b ⟩
-  inc (D1 ⟨ b ⟩)  = D0 ⟨ inc b ⟩ {-"~~."-}
+  inc B0        = D1 ∷ B0
+  inc (D0 ∷ b)  = D1 ∷ b
+  inc (D1 ∷ b)  = D0 ∷ inc b {-"~~."-}
 \end{code}
 The worst-case cost for incrementing a number is $O(\log n)$, since a carry may propagate through every digit; the amortised cost, however, is $O(1)$.
 \todo{reason?}
@@ -208,12 +172,12 @@ Correctness is verified by induction, with the carry case appealing to the corre
 We also verify |toN-fromN : ∀ n → toN (fromN n) ≡ n|, establishing that |toN| is a left inverse of |fromN|.
 
 \paragraph{The redundancy problem.}
-Standard binary numbers admit \emph{leading zeros}: |B0|, |D0 ⟨ B0 ⟩|, |D0 ⟨ D0 ⟨ B0 ⟩ ⟩|, \ldots\ all denote zero.
+Standard binary numbers admit \emph{leading zeros}: |B0|, |D0 ∷ B0|, |D0 ∷ D0 ∷ B0|, \ldots\ all denote zero.
 More generally, distinct representations can map to the same natural number:
 \begin{code}
   redundant : ∃ (λ x → ∃ (λ y → (x ≢ y) × (toN x ≡ toN y))) {-"~~,"-}
 \end{code}
-witnessed by |B0| and |D0 ⟨ B0 ⟩|.
+witnessed by |B0| and |D0 ∷ B0|.
 As a consequence, the converse direction |fromN-toN : ∀ b → fromN (toN b) ≡ b| does \emph{not} hold: the round-trip through |ℕ| normalises away leading zeros.
 \todo{Redundacy itself shouldn't be a problem... we will introduce redundancy later! Why do we not like |B0|s in this stage?}
 
@@ -231,7 +195,7 @@ To achieve that, at each successive position the element type \emph{doubles} to 
 \begin{code}
   data RAL (A : Set) : Binary → Set where
     nil   : RAL A B0
-    more  : ∀ {d b} → Some A d → RAL (A × A) b → RAL A (d ⟨ b ⟩) {-"~~."-}
+    _∷_  : ∀ {d b} → Some A d → RAL (A × A) b → RAL A (d ∷ b) {-"~~."-}
 \end{code}
 The first element in |RAL A n|, if any, has type |A|;
 the second |A × A|, and the third |(A × A) × (A × A)|.
@@ -240,9 +204,9 @@ They are essentially complete binary trees of increasing depth.
 The |cons| operation mirrors |inc|: when the least-significant digit is |D1|, the new element is paired with the existing one and carried to the next level:
 \begin{code}
   cons : ∀ {A b} → A → RAL A b → RAL A (inc b)
-  cons x nil                = more (one x) nil
-  cons x (more zero xs)     = more (one x) xs
-  cons x (more (one y) xs)  = more zero (cons (x , y) xs) {-"~~."-}
+  cons x nil           = one x  ∷ nil
+  cons x (zero ∷ xs)   = one x  ∷ xs
+  cons x (one y ∷ xs)  = zero   ∷ cons (x , y) xs {-"~~."-}
 \end{code}
 The index type |Idx| for binary RALs branches on the digit: a |D0| digit contributes two recursive directions (left and right child of the implicit complete binary tree at that level), while a |D1| digit adds a base index for the element it stores plus two recursive branches.
 Lookup runs in $O(\log n)$ time.
@@ -262,14 +226,14 @@ This yields what \citet{HinzeSwierstra:22:Calculating} term \emph{Leibniz numera
     D1  : Digit
     D2  : Digit {-"~~,"-}
   data ZBinary : Set where
-    B0    : ZBinary
-    _⟨_⟩  : Digit → ZBinary → ZBinary {-"~~."-}
+    B0   : ZBinary
+    _∷_  : Digit → ZBinary → ZBinary {-"~~."-}
 \end{code}
 The semantic function assigns weight $2^k$ to the digit at position~$k$:
 \begin{code}
   toN : ZBinary → ℕ
-  toN B0        = 0
-  toN (d ⟨ n ⟩)  = DtoN d + 2 * toN n {-"~~,"-}
+  toN B0       = 0
+  toN (d ∷ n)  = DtoN d + 2 * toN n {-"~~,"-}
 \end{code}
 where |DtoN D1 = 1| and |DtoN D2 = 2|.
 Since every digit is at least~$1$, any representation other than |B0| necessarily denotes a positive number.
@@ -277,18 +241,18 @@ Since every digit is at least~$1$, any representation other than |B0| necessaril
 Increment flips a |D1| to |D2| without carry, and wraps a |D2| to |D1| while carrying to the next position:
 \begin{code}
   inc : ZBinary → ZBinary
-  inc B0          = D1 ⟨ B0 ⟩
-  inc (D1 ⟨ n ⟩)  = D2 ⟨ n ⟩
-  inc (D2 ⟨ n ⟩)  = D1 ⟨ inc n ⟩ {-"~~."-}
+  inc B0        = D1 ∷ B0
+  inc (D1 ∷ n)  = D2 ∷ n
+  inc (D2 ∷ n)  = D1 ∷ inc n {-"~~."-}
 \end{code}
 The worst case is still $O(\log n)$ when a chain of |D2| digits forces successive carries.
 Decrement is symmetric, borrowing from the next position when a |D1| is encountered:
 \begin{code}
   dec : ZBinary → ZBinary
-  dec B0               = B0
-  dec (D1 ⟨ B0 ⟩)      = B0
-  dec (D1 ⟨ d ⟨ n ⟩ ⟩)  = D2 ⟨ dec (d ⟨ n ⟩) ⟩
-  dec (D2 ⟨ n ⟩)        = D1 ⟨ n ⟩ {-"~~."-}
+  dec B0            = B0
+  dec (D1 ∷ B0)     = B0
+  dec (D1 ∷ d ∷ n)  = D2 ∷ dec (d ∷ n)
+  dec (D2 ∷ n)      = D1 ∷ n {-"~~."-}
 \end{code}
 Correctness of both operations is verified, along with the property |dec-inc≡id : ∀ n → dec (inc n) ≡ n|, showing that decrement is a left inverse of increment at the representation level.
 
@@ -318,9 +282,9 @@ The digit |D1| carries one element; |D2| carries two:
 The |cons| operation mirrors |inc|: adding to a |D1| position produces a |D2|, while adding to a |D2| position wraps back to |D1| and carries a pair upward:
 \begin{code}
   cons : ∀ {A n} → A → RAL A n → RAL A (inc n)
-  cons x nil                  = more (one x) nil
-  cons x (more (one y) xs)    = more (two x y) xs
-  cons x (more (two y z) xs)  = more (one x) (cons (y , z) xs) {-"~~."-}
+  cons x nil              = one x    ∷ nil
+  cons x (one y    ∷ xs)  = two x y  ∷ xs
+  cons x (two y z  ∷ xs)  = one x    ∷ cons (y , z) xs {-"~~."-}
 \end{code}
 Since |inc| recurses only upon encountering |D2|, the operation is $O(1)$ amortised.
 The |head| and |tail| functions can be typed to accept |RAL A (inc n)|, leveraging the Peano view to ensure the list is non-empty:
@@ -374,22 +338,22 @@ We extend the digit set to $\{1, 2, 3\}$:
     D2  : Digit
     D3  : Digit {-"~~,"-}
   data RBinary : Set where
-    B0    : RBinary
-    _⟨_⟩  : Digit → RBinary → RBinary {-"~~."-}
+    B0   : RBinary
+    _∷_  : Digit → RBinary → RBinary {-"~~."-}
 \end{code}
 The semantic function retains its uniform shape:
 \begin{code}
   toN : RBinary → ℕ
-  toN B0        = 0
-  toN (d ⟨ n ⟩)  = DtoN d + 2 * toN n {-"~~."-}
+  toN B0       = 0
+  toN (d ∷ n)  = DtoN d + 2 * toN n {-"~~."-}
 \end{code}
 Increment absorbs a carry locally whenever the digit is below its maximum:
 \begin{code}
   inc : RBinary → RBinary
-  inc B0          = D1 ⟨ B0 ⟩
-  inc (D1 ⟨ n ⟩)  = D2 ⟨ n ⟩
-  inc (D2 ⟨ n ⟩)  = D3 ⟨ n ⟩
-  inc (D3 ⟨ n ⟩)  = D2 ⟨ inc n ⟩ {-"~~."-}
+  inc B0        = D1 ∷ B0
+  inc (D1 ∷ n)  = D2 ∷ n
+  inc (D2 ∷ n)  = D3 ∷ n
+  inc (D3 ∷ n)  = D2 ∷ inc n {-"~~."-}
 \end{code}
 A carry propagates only when the digit is already |D3|, and the digit then resets to |D2| rather than |D1|.
 The worst-case cost of a single |inc| remains $O(\log n)$, since a chain of |D3| digits forces successive carries just as a chain of |D2| digits does in the zeroless system.
@@ -401,11 +365,11 @@ The extra room in the digit range $\{1, 2, 3\}$ thus acts as a buffer that preve
 Decrement is defined symmetrically, borrowing when the digit is |D1|:
 \begin{code}
   dec : RBinary → RBinary
-  dec B0               = B0
-  dec (D1 ⟨ B0 ⟩)      = B0
-  dec (D1 ⟨ d ⟨ n ⟩ ⟩)  = D2 ⟨ dec (d ⟨ n ⟩) ⟩
-  dec (D2 ⟨ n ⟩)        = D1 ⟨ n ⟩
-  dec (D3 ⟨ n ⟩)        = D2 ⟨ n ⟩ {-"~~."-}
+  dec B0            = B0
+  dec (D1 ∷ B0)     = B0
+  dec (D1 ∷ d ∷ n)  = D2 ∷ dec (d ∷ n)
+  dec (D2 ∷ n)      = D1 ∷ n
+  dec (D3 ∷ n)      = D2 ∷ n {-"~~."-}
 \end{code}
 Correctness of both operations is verified:
 \begin{code}
@@ -419,7 +383,7 @@ The enlarged digit set introduces three complications absent from the zeroless s
 
 \paragraph{Non-unique representation.}
 Multiple representations can denote the same value.
-For example, both |D3 ⟨ B0 ⟩| and |D1 ⟨ D1 ⟨ B0 ⟩ ⟩| represent the number~$3$:
+For example, both |D3 ∷ B0| and |D1 ∷ D1 ∷ B0| represent the number~$3$:
 \begin{code}
   redundant : ∃ (λ x → ∃ (λ y → (x ≢ y) × (toN x ≡ toN y))) {-"~~."-}
 \end{code}
@@ -429,14 +393,14 @@ Since multiple representations coexist, |dec (inc n)| need not return |n| itself
 \begin{code}
   dec-inc≢id : ∃ (λ n → n ≢ dec (inc n)) {-"~~."-}
 \end{code}
-For instance, |inc| maps |D3 ⟨ B0 ⟩| to |D2 ⟨ D1 ⟨ B0 ⟩ ⟩|, and |dec| then yields |D1 ⟨ D1 ⟨ B0 ⟩ ⟩|, a different representation of the same number~$3$.
+For instance, |inc| maps |D3 ∷ B0| to |D2 ∷ D1 ∷ B0|, and |dec| then yields |D1 ∷ D1 ∷ B0|, a different representation of the same number~$3$.
 
 \paragraph{Gaps in the image of increment.}
 Not every non-zero |RBinary| is of the form |inc y| for some~|y|:
 \begin{code}
   inc-gap : ∃ (λ x → (toN x ≢ 0) × (∀ y → x ≢ inc y)) {-"~~."-}
 \end{code}
-The witness is |D1 ⟨ D1 ⟨ B0 ⟩ ⟩|: no |y| satisfies |inc y ≡ D1 ⟨ D1 ⟨ B0 ⟩ ⟩|, because |inc| always produces an initial |D1| only at the base case |B0|, never as a result of carrying.
+The witness is |D1 ∷ D1 ∷ B0|: no |y| satisfies |inc y ≡ D1 ∷ D1 ∷ B0|, because |inc| always produces an initial |D1| only at the base case |B0|, never as a result of carrying.
 This directly affects the type of |head|: the signature |head : RAL A (inc n) → A| used in the zeroless system cannot accept all non-empty RALs.
 We must instead require an explicit non-emptiness proof:
 \begin{code}
@@ -456,10 +420,10 @@ The |cons| operation mirrors |inc|.
 When the least-significant digit is |D3|, two of the three stored elements are paired and carried to the next level:
 \begin{code}
   cons : ∀ {A n} → A → RAL A n → RAL A (inc n)
-  cons x nil                          = more (one x) nil
-  cons x (more (one y) xs)            = more (two x y) xs
-  cons x (more (two y z) xs)          = more (three x y z) xs
-  cons x (more (three y z w) xs)      = more (two x y) (cons (z , w) xs) {-"~~."-}
+  cons x nil                  = one x        ∷ nil
+  cons x (one y        ∷ xs)  = two x y      ∷ xs
+  cons x (two y z      ∷ xs)  = three x y z  ∷ xs
+  cons x (three y z w  ∷ xs)  = two x y      ∷ cons (z , w) xs {-"~~."-}
 \end{code}
 The worst-case cost of |cons| mirrors that of |inc| and is $O(\log n)$.
 However, when |cons| and |tail| are interleaved, the redundant digit range prevents cascading carries and borrows, yielding $O(1)$ amortised cost per operation --- a strict improvement over the zeroless system under mixed workloads.

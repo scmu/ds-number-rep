@@ -111,6 +111,7 @@
 %format t = "\Var t"
 %format u = "\Var u"
 %format v = "\Var v"
+%format w = "\Var w"
 %format ws = "\Var ws"
 %format x = "\Var x"
 %format x₁ = "{\Var x}_{1}"
@@ -147,3 +148,19 @@
 %format ∀ = "\forall"
 %format λ = "\lambda"
 %format ℕ = "\mathbb{N}"
+
+%format D0 = "\mathbf{0}"
+%format D1 = "\mathbf{1}"
+%format D2 = "\mathbf{2}"
+%format D3 = "\mathbf{3}"
+%format N0 = "\mathbf{0}"
+%format B0 = "\mathbf{0}"
+%format zero = "\mathbb{0}"
+%format one = "\mathbb{1}"
+%format two = "\mathbb{2}"
+%format three = "\mathbb{3}"
+
+%format nil = "\mathbbm{0}"
+
+%format ∷ = "\mathbin{::}"
+%%format more (x) (xs) = x "\mathbin{::}" xs
