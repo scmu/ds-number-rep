@@ -52,14 +52,14 @@ Recall their definitions:
     Nil   : List a
     Cons  : a → List a → List a {-"~~."-}
 \end{code}
-The |List| datatype is obtained by ornamenting the |Suc| constructor with a value of type |a|;
-by traversing the list, removing the |a| and replacing |Nil| and |Cons| respectively by |Zero| and |Suc|, we get the length of the list.
+The type |List a| is obtained by ornamenting the |Suc| constructor with a value of type |a|;
+by traversing a list, removing the |a| and replacing |Nil| and |Cons| respectively by |Zero| and |Suc|, we get an |ℕ| back, which is also the length of the list.
 Many operations on lists have their natural-number counterparts: |tail| is decrementing by one, and list |append| is addition.
 By indexing lists by unary natural numbers, we get the type |Vec| --- length-constrained lists, whose |append| operation has only one ``reasonable'' definition enforced by its type.
 
-This correspondence extend to other representations of natural numbers.
+This correspondence extends to other representations of natural numbers.
 As noted by \citet{Okasaki:99:Purely}, data structures resembling numerical representations are surprisingly common, but the connection is not often made explicit.
-Okasaki devoted an entire chapter to such data structures and presented several implementations of one-sided random-access lists, based several representations of binary numbers, that support |cons|, |head|, and |tail| in $O(1)$ worst-case time, and |lookup| in $O(\log n)$ worst-case time.
+Okasaki devoted an entire chapter to such data structures and presented several implementations of one-sided random-access lists, based on several representations of binary numbers, that support |cons|, |head|, and |tail| in $O(1)$ worst-case time, and |lookup| in $O(\log n)$ worst-case time.
 \citet{KaplanTarjan:99:Purely} presented a deque with concatenation, inspired by a redundant binary representation of numbers. \todo{say more}
 
 The Finger Tree \cite{HinzePaterson:06:Finger} is a very versatile data structure for sequences, supporting \todo{review Finger Tree and its supposed connection to numbers}
@@ -107,7 +107,7 @@ Increment and decrement are both $O(1)$:
   dec N0          = N0
   dec (D1 ∷ n)  = n {-"~~."-}
 \end{code}
-Addition of two |Nat|s, however, takes $O(m)$ time.
+Addition |m + n| of two |Nat|s, however, takes $O(m)$ time.
 Correctness of these operations follows immediately --- all proofs reduce to |refl|:
 \begin{code}
   inc-correct : ∀ n → toN (inc n) ≡ suc (toN n)
@@ -121,8 +121,12 @@ Moreover, |toN| and |fromN| (defined by iterating |inc|) constitute a bijection 
 
 % \subsection{Random-Access Lists from Unary Numbers} % SCM: joining the two sections together, for a quicker pace
 Now consider the container datatype induced from |Nat|.
-For each number system, we introduce a datatype |Some A d|, indexed by |d : Digit|, denoting a node containing |DtoN d| occurrences of |A|, and a datatype |RAL A n| where |n : Nat|, denoting a random-access list containing |n| elements.
-For |Nat| defined above, the induced |Some| and |RAL| are shown below:
+For each number system, we introduce two datatypes |Some A| and |RAL A|, respectively indexed by a |Digit| and a |Nat|.
+Given |d : Digit|, |Some A d| contains |d| occurrences of |A|;
+given |n : Nat|, |RAL A d| denotes a random-access list having |n| elements.
+For |Nat| defined above, the induced |Some| and |RAL| are shown below:%
+\footnote{In this article we use bold font, e.g. |D1|, for constructors of |Digit| and |Nat|,
+and blackboard bold font, e.g. |one|, for those of |Some| and |RAL|.}
 \begin{code}
   data Some (A : Set) : Digit → Set where
     one : A → Some A D1 {-"~~,"-}
@@ -132,22 +136,27 @@ For |Nat| defined above, the induced |Some| and |RAL| are shown below:
     _∷_  : ∀ {d n} → Some A d → RAL A n → RAL A (d ∷ n) {-"~~."-}
 \end{code}
 The type |Some| contains exactly one element, and |RAL| is isomorphic to |Vec|, the familiar type of length-indexed vectors.
+For example,
+\begin{spec}
+ one 'a' ∷ one 'b' ∷ one 'c' ∷ nil {-"~~,"-}
+\end{spec}
+having type |RAL Char (D1 ∷ D1 ∷ D1 ∷ N0)|, is a vector having three elements
 The operations |cons| and |tail|, respectively corresponding to |inc| and |dec| on |Nat|, are $O(1)$.
 The downside, however, is that |append|, corresponding to addition, takes time proportional to the size of the first argument. The operation |lookup| also has to traverse the entire structure in the worst case and is therefore linear time.
 
 \subsection{Binary Numbers}
 
-A standard trick to achieve logarithmic-time operations is switch to a binary representation.
-We now have two digits, denoting zero and one:
+A standard trick to achieve logarithmic-time operations is to switch to a binary representation.
+The type |RAL| is still a sequence of |Digit|s, but now the digits could be zero or one:
 \begin{code}
   data Digit : Set where
     D0  : Digit
     D1  : Digit {-"~~,"-}
   data Binary : Set where
-    B0    : Binary
+    B0   : Binary
     _∷_  : Digit → Binary → Binary {-"~~."-}
 \end{code}
-To make the connection with lists clear, we present binary numbers least-significant first.
+To make the connection with lists clear, in this article we present binary numbers least-significant first.
 For example, |D1 ∷ D0 ∷ D1 ∷ D1 ∷ B0| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
 The semantic function is:
 \begin{code}
@@ -183,7 +192,7 @@ As a consequence, the converse direction |fromN-toN : ∀ b → fromN (toN b) �
 
 \subsection{Random-Access Lists from Binary Numbers}
 
-Consider the RAL induced by binary numbers.
+Now we consider random-access lists induced by binary numbers.
 The type |Some| how has two cases: when indexed by |D0| it carries nothing, and when indexed by |D1| it carries one element:
 \begin{code}
   data Some (A : Set) : Digit → Set where
@@ -197,21 +206,27 @@ To achieve that, at each successive position the element type \emph{doubles} to 
     nil   : RAL A B0
     _∷_  : ∀ {d b} → Some A d → RAL (A × A) b → RAL A (d ∷ b) {-"~~."-}
 \end{code}
-The first element in |RAL A n|, if any, has type |A|;
-the second |A × A|, and the third |(A × A) × (A × A)|.
+Each position of |RAL A n| may contain some data or not.
+The first piece of data, if any, has type |A|;
+the second |A × A|, and the third |(A × A) × (A × A)|, etc.
 They are essentially complete binary trees of increasing depth.
 
-The |cons| operation mirrors |inc|: when the least-significant digit is |D1|, the new element is paired with the existing one and carried to the next level:
+The definition of |cons| mirrors that of |inc| --- when the least-significant digit is |D1|, the new element is paired with the existing one and carried to the next level:
 \begin{code}
   cons : ∀ {A b} → A → RAL A b → RAL A (inc b)
   cons x nil           = one x  ∷ nil
   cons x (zero ∷ xs)   = one x  ∷ xs
   cons x (one y ∷ xs)  = zero   ∷ cons (x , y) xs {-"~~."-}
 \end{code}
+In fact, with |RAL| indexed by |Nat| and with |inc| defined, there is only one reasonable way to implement |cons|.
+This is a theme we will see a lot in this article: operations on |Nat| induces corresponding operations on the container data structure.
+
 The index type |Idx| for binary RALs branches on the digit: a |D0| digit contributes two recursive directions (left and right child of the implicit complete binary tree at that level), while a |D1| digit adds a base index for the element it stores plus two recursive branches.
 Lookup runs in $O(\log n)$ time.
 
 \todo{expand on head and taill}
+
+\todo{What is wrong with the zeros?}
 
 \section{Zeroless Representation}
 
@@ -221,6 +236,7 @@ This yields what \citet{HinzeSwierstra:22:Calculating} term \emph{Leibniz numera
 
 \subsection{Zeroless Binary Numbers}
 
+The Leibniz numeral is still |2|-based, but the digits are $\{1, 2\}$ rather than $\{0, 1\}$:
 \begin{code}
   data Digit : Set where
     D1  : Digit
@@ -236,6 +252,8 @@ The semantic function assigns weight $2^k$ to the digit at position~$k$:
   toN (d ∷ n)  = DtoN d + 2 * toN n {-"~~,"-}
 \end{code}
 where |DtoN D1 = 1| and |DtoN D2 = 2|.
+For example, |D1 ∷ D2 ∷ D1 ∷ []| denotes
+$1 \times 2^0 +$ $2 \times$ $2^1 +$ $1 \times 2^2 = 1 + 4 + 4 = 9$.
 Since every digit is at least~$1$, any representation other than |B0| necessarily denotes a positive number.
 
 Increment flips a |D1| to |D2| without carry, and wraps a |D2| to |D1| while carrying to the next position:
@@ -245,8 +263,9 @@ Increment flips a |D1| to |D2| without carry, and wraps a |D2| to |D1| while car
   inc (D1 ∷ n)  = D2 ∷ n
   inc (D2 ∷ n)  = D1 ∷ inc n {-"~~."-}
 \end{code}
-The worst case is still $O(\log n)$ when a chain of |D2| digits forces successive carries.
-Decrement is symmetric, borrowing from the next position when a |D1| is encountered:
+The worst case running time of |inc| is still $O(\log n)$ when a chain of |D2| digits forces successive carries.
+\todo{But is it $O(1)$ amortised?}
+Decrement is dual to increment, borrowing from the next position when a |D1| is encountered:
 \begin{code}
   dec : ZBinary → ZBinary
   dec B0            = B0
@@ -259,6 +278,7 @@ Correctness of both operations is verified, along with the property |dec-inc≡i
 \subsection{Unique Representation}
 
 The central advantage of the zeroless system is that every natural number has a \emph{unique} representation.
+\todo{Why is this an advantage?}
 We formalise this as injectivity of~|toN|:
 \begin{code}
   nonRedundant : ∀ x y → toN x ≡ toN y → x ≡ y {-"~~."-}
@@ -279,6 +299,7 @@ The digit |D1| carries one element; |D2| carries two:
     one  : A → Some A D1
     two  : A → A → Some A D2 {-"~~."-}
 \end{code}
+The definition of |RAL| remains the same and is omitted.
 The |cons| operation mirrors |inc|: adding to a |D1| position produces a |D2|, while adding to a |D2| position wraps back to |D1| and carries a pair upward:
 \begin{code}
   cons : ∀ {A n} → A → RAL A n → RAL A (inc n)
