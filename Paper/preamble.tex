@@ -1,0 +1,40 @@
+
+%\usepackage[capitalise,noabbrev]{cleveref}
+\citestyle{acmauthoryear}
+
+\usepackage{mathtools}
+\usepackage{pifont}
+\usepackage{amssymb}
+\usepackage{bbold}
+
+\usepackage{mdframed}
+\newenvironment{temp}{\begin{mdframed}[backgroundcolor=red!7, linewidth=0, skipabove=1ex, leftmargin=1ex, rightmargin=0, innerleftmargin=0, innerrightmargin=0, innertopmargin=0, innerbottommargin=0]\setlength{\abovedisplayskip}{0ex}\raisebox{-\height-3pt}[0pt][0pt]{\hspace{.965\textwidth}\color{red}\huge\ding{56}}}{\end{mdframed}}
+
+\usepackage{wrapfig}
+\usepackage{xifthen}
+
+\usepackage[inline]{enumitem} % for environment enumerate*
+\newlist{inlineenum}{enumerate*}{1}
+\setlist[inlineenum]{label=(\arabic*)}
+
+\DeclareMathAlphabet{\mathsf}{OT1}{cmss}{m}{n}
+\DeclareMathAlphabet{\mathsfb}{OT1}{cmss}{bx}{n}
+
+\newcommand{\todo}[1]{{\color{orange}(TODO: #1)}}
+\newcommand{\todonote}[1]{\footnote{\color{blue}Shin: #1}}
+
+\newenvironment{aha}{\medskip}{\unskip\medskip} % for one-line paragraphs
+\makeatletter
+\newcommand{\pause}{\medskip\centerline{$\ast\quad\ast\quad\ast$}\medskip\@@afterindentfalse\@@afterheading} % for a mid-section pause
+\newcommand{\bigpause}{\medskip\centerline{$\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast\quad\ast$}\medskip\@@afterindentfalse\@@afterheading} % to set off the Afterword
+\makeatother
+
+\newcommand{\csp}{\hspace{.5em minus .1em}}
+\newcommand{\equals}{\enskip=\enskip}
+
+
+\let\Bbbk\relax
+%include agda.fmt
+%include agdaMacros.fmt
+
+\setlength{\mathindent}{2\parindent}
