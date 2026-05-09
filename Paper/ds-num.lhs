@@ -13,7 +13,7 @@
   % \department{Computer Science and Information Engineering}
   % \streetaddress{128 Academia Road}
   % \city{Taipei}
-  % \country{Taiwan}
+  \country{Taiwan}
   % \postcode{115201}
 }
 \author{Shin-Cheng Mu}
@@ -22,7 +22,7 @@
   % \department{Institute of Information Science}
   % \streetaddress{128 Academia Road}
   % \city{Taipei}
-  % \country{Taiwan}
+  \country{Taiwan}
   % \postcode{115201}
 }
 
@@ -37,8 +37,6 @@ It turns out that Finger Trees, a versatile data structure for sequences, can be
 
 
 \maketitle
-
-\section{} % why doesn't this show up?
 
 %include sections/Intro.agda
 %include sections/Unary.agda

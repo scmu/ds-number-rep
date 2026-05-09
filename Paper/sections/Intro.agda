@@ -1,7 +1,7 @@
 
 \section{Introduction}
 
-Every introductory course to functional programming should mention that |List|s are closely related to the unary representation of natural numbers, |ℕ|.
+Every introductory course to functional programming should mention that |List|s are closely related to |ℕ|, the unary representation of natural numbers.
 Recall their definitions:\\
 \begin{minipage}[t]{0.45\textwidth}
 \begin{code}

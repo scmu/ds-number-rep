@@ -142,6 +142,8 @@
 
 %format ⟨ = "\langle"
 %format ⟩ = "\rangle"
+%format ⊥ = "\bot"
+%format ≡ = "\equiv"
 %format ≢ = "\not\equiv"
 %format × = "\mathbin{\!\times\!}"
 %format ∃ = "\exists"
@@ -165,3 +167,8 @@
 %format ∷ = "\mathbin{\!::\!}"
 %format _∷_ = "\_\!\!::\!\!\_"
 %%format more (x) (xs) = x "\mathbin{::}" xs
+
+%format proj₁ = "\Varid{proj}_{1}"
+%format proj₂ = "\Varid{proj}_{2}"
+
+%format toN = "\Varid{to}{\mathbb{N}}"
