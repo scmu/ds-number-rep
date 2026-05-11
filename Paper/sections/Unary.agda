@@ -26,9 +26,9 @@ whose semantics is given by counting the occurrences of |D1|s:
 \begin{code}
 toN : Unary → ℕ
 toN N0       = 0
-toN (d ∷ n)  = DtoN d + toN n {-"~~,"-}
+toN (d ∷ n)  = ⟦ d ⟧ + toN n {-"~~,"-}
 \end{code}
-where |DtoN D1 = 1|.
+where |⟦ D1 ⟧ = 1|.
 For example, |3| is represented by |D1 ∷ D1 ∷ D1 ∷ N0|.
 
 %Since the only available digit is |D1|, we recover the standard Peano representation: the number $k$ is represented by $k$ copies of |D1| prepended to |N0|.

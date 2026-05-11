@@ -44,9 +44,9 @@ It turns out that Finger Trees, a versatile data structure for sequences, can be
 %include sections/ZerolessBinary.agda
 %include sections/RedundantBinary.agda
 
-\section{Symmetric Representation}
+\section{Symmetric representation}
 
-\section{Fractional Digits}
+\section{Fractional digits}
 
 \section{Conclusions}
 

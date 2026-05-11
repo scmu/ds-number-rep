@@ -168,6 +168,11 @@
 %format _∷_ = "\_\!\!::\!\!\_"
 %%format more (x) (xs) = x "\mathbin{::}" xs
 
+%format ⟦ = "\llbracket"
+%format ⟧ = "\rrbracket"
+%format ⟧D = "\rrbracket_{\Varid{D}}"
+%format ⟦_⟧ = "\llbracket\_\rrbracket"
+
 %format proj₁ = "\Varid{proj}_{1}"
 %format proj₂ = "\Varid{proj}_{2}"
 
