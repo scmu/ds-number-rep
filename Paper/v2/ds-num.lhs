@@ -75,10 +75,15 @@ In this article, \todo{what we will cover}
 \section{Binary numbers}
 
 As mentioned in Section~\ref{sec:intro}, cons-lists can be seen as derived from the unary representation of natural numbers.
-The |cons| operator corresponds to successor, and append is addition.
-In this representation we get $O(1)$ |cons|, |head|, and |tail|, linear-time append, and linear-time looking-up.
+The |cons| operator corresponds to successor, and |append| addition.
+In this representation we get $O(1)$ |cons|, |head|, and |tail|, linear-time append, and linear-time indexing.%
+\footnote{The term ``indexing'' has two meaning in this pearl:
+finding a certain element in a list given its index,
+or indexing an inductive family of types.
+We believe that they should be distinguishable from the context.
+}
 
-Can we achieve $O(\log n)$ looking-up if we switch to a binary representation?
+Can we achieve $O(\log n)$ indexing if we switch to a binary representation?
 
 \subsection{Naive binary representation}
 
@@ -88,12 +93,10 @@ Consider the following representation of binary numbers:%
 data Digit   = D0 | D1 {-"~~,"-}
 data Binary  = [] | Digit ∷ Binary {-"~~."-}
 \end{spec}
-To make the connection with lists clear, in this article we present binary numbers least-significant first.
+To manifest its connection with lists, in this pearl we present binary numbers least-significant digit first.
 For example, |D1 ∷ D0 ∷ D1 ∷ D1 ∷ B0| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
 One may already have noticed a potential problem: both |D1 ∷ D1 ∷ B0| and |D1 ∷ D1 ∷ D0 ∷ B0| denote $4$.
-% We will ensure that our operations maintain the invariant that there are no trailing zeros: the rightmost (most significant) digit of a constructed |Binary|, if any, is always |D1|.
-% This invariant could have been enforced by some clever design in the datatype, but we will keep it simple for now, before moving on to another representation.
-We may ensure that our operations maintain the invariant that there are no trailing zeros, or enforce so using some clever design in the datatype, but we will keep it simple for now, before moving on to another representation.
+We may ensure that our operations do not generate trailing zeros, or enforce so using some clever design in the datatype, but we will keep it simple for now, before moving on to another representation.
 
 The definitions above induce two datatypes, respectively indexed by |Digit| and |Binary|:
 \begin{code}
@@ -118,14 +121,15 @@ inc (D1 ∷ b)  = D0 ∷ inc b {-"~~,"-}
 \end{minipage}%
 \begin{minipage}[t]{0.45\textwidth}
 \begin{code}
-  cons : ∀ {A b} → A → BList A b → BList A (inc b)
-  cons x nil           = one x  ∷ nil
-  cons x (zero ∷ xs)   = one x  ∷ xs
-  cons x (one y ∷ xs)  = zero   ∷ cons (x , y) xs {-"~~."-}
+cons : ∀ {A b} → A → BList A b → BList A (inc b)
+cons x nil           = one x  ∷ nil
+cons x (zero ∷ xs)   = one x  ∷ xs
+cons x (one y ∷ xs)  = zero   ∷ cons (x , y) xs {-"~~."-}
 \end{code}
 \end{minipage}\\
 The definition of |cons| mirrors that of |inc|.
-In fact, when coding up |cons| in Agda, guided by |inc| in its type, the programmer is often left with only one reasonable way fill in each of the right hand side.
+Notice how the carrying in |inc| corresponds to consing |(x,y)| to the tail of the list.
+In fact, when coding up |cons| in Agda, guided by |inc| in its type, the programmer is often left with only one reasonable way to fill in each of the right hand side.
 
 One problem with |BList| is that |head| is no longer $O(1)$.
 The easy case |head (one x ∷ xs)| yields |x| immediately,
@@ -141,7 +145,7 @@ data Digit = D1 | D2 {-"~~."-}
 \end{spec}
 The definition of |Binary| stays the same. Albeit having |D2| as a digit, we still intend the number to be 2-based.
 For example, |D1 ∷ D2 ∷ D1 ∷ []| denotes $1 \times 2^0 +$ $2 \times$ $2^1 +$ $1 \times 2^2 = 1 + 4 + 4 = 9$.
-The induced list-like datatype stores the following |Some| in each position:
+The induced list-like datatype contains the following |Some| in each position:
 \begin{code}
   data Some (A : Set) : Digit → Set where
     one  : A → Some A D1
@@ -167,7 +171,6 @@ Consider how increment and decrement are defined:\\
   dec (D2 ∷ n)   = D1 ∷ n {-"~~."-}
 \end{code}
 \end{minipage}\\
-Functions |head| and |tail| on |RList|s are defined similarly, having similar time complexity, therefore it is sufficient to examine |inc| and |dec|.
 Increment flips a |D1| to |D2| without carry, and wraps a |D2| to |D1| while carrying to the next position.
 Decrement does the reverse.
 Note that when decrementing |D1 ∷ n|, we borrow a $1$ from |n|, and the least significant digit becomes |D2|.
@@ -218,8 +221,7 @@ Symmetrically, after a borrow resets a |D1| to |D2|, a subsequent |inc| increase
 The extra room in the digit range $\{1, 2, 3\}$ thus acts as a buffer that prevents carries and borrows from cascading in alternation, ensuring that the amortised cost per operation remains $O(1)$ even when |inc| and |dec| are interleaved arbitrarily.
 \todo{simplify the explanation done by Chris Okasaki}
 
-
-Consider the random-access list induced by |Rbinary|.
+Consider the random-access list induced by |Binary|.
 The |Some| type is extended with a case |three| that stores three elements:
 \begin{code}
   data Some (A : Set) : Digit → Set where
@@ -260,6 +262,7 @@ When |cons| and |tail| are interleaved, the redundant digit range prevents casca
 
 \subsection{Index types}
 
+\todo{We shall talk about indexing now, but this section is a place holder. To be rewritten.}
 The index type |Idx| extends the zeroless version with constructors for the |D3| digit: three base indices and two recursive branches.
 The successor operation on indices, |isucc|, maps |Idx n| to |Idx (inc n)| and satisfies:
 \begin{code}
@@ -273,15 +276,17 @@ A new operation |ishift : Idx (dec n) → Idx n| maps an index for the decrement
 \end{code}
 The key interface lemmas |lookup-izero|, |lookup-isucc|, and |lookup-tail| are all verified, ensuring that the RAL behaves as a correct flexible array.
 
-In summary, with the redundant binary representation we induced a list that offers $O(1)$ |head|,
+\paragraph{Summary}
+With the redundant binary representation we induced a list that offers $O(1)$ |head|,
 worst-case $O(\log n)$ and amortised $O(1)$ |cons| and |tail|,
 $O(\log n)$ |lookup|, and amortised $O(n)$ |append|.
 Asymptote-wise, it appears to be a good improvement over the simple built-in list implemented as left-biased linked-lists,
-provided that you only add to and remove from one end of the list, and perform |lookup| more than |append|.
-What, then, if we wish to add to and remove from both ends, or we want a faster append?
-
+provided that you only add to and remove from one end of the list, and perform indexing more than |append|.
+What, then, if we wish to add to and remove from both ends, or if we want a faster append?
 
 \section{Symmetric representation}
+
+
 
 \section{Fractional digits}
 
