@@ -183,6 +183,7 @@ For the same reason the time complexity of |dec| is also $O(\log n)$ worst-case 
 If we mix |inc| and |dec|, however, we lost the amortised $O(1)$ behaviour --- \todo{explain in one sentence}.
 
 \subsection{Redundant binary representation}
+\label{sec:redundant-binary}
 
 Surprisingly, amortised $O(1)$ performance of mixed |inc| and |dec| can be achieved by \emph{adding another digit} in our numerical representation:
 \begin{spec}
@@ -286,6 +287,74 @@ What, then, if we wish to add to and remove from both ends, or if we want a fast
 
 \section{Symmetric representation}
 
+%format df = "{\Var d}_{f}"
+%format dr = "{\Var d}_{r}"
+
+To have immediate access to both ends of the data structure, we conceive a number representation that is \emph{symmetrical}:
+\begin{spec}
+data Digit    = D1 | D2 | D3 {-"~~,"-}
+data SBinary  = B0 | B1 | Digit ⟨ SBinary ⟩ Digit {-"~~."-}
+\end{spec}
+From the lesson learned in Section~\ref{sec:redundant-binary}, we use digits |{ D1{-"\!"-} .. {-"\!"-}D3 }| --- it is therefore a zeroless, redundant representation.
+In the middle of an |SBinary| is either |B0| or |B1|, respectively representing |0| and |1|, possibly surrounded by the same number of digits on both sides.
+The semantics of |SBinary| is given by:
+\begin{spec}
+toN : SBinary → ℕ
+toN B0             = 0
+toN B1             = 1
+toN (df ⟨ n ⟩ dr)  = ⟦ df ⟧ + 2 * (toN n) + ⟦ dr ⟧ {-"~~,"-}
+\end{spec}
+where |⟦_⟧| converts a |Digit| to a |ℕ|, e.g. |⟦ D2 ⟧ = 2|.
+For example, both |D3 ⟨ D3 ⟨ B1 ⟩ D1 ⟩ D1| and |D3 ⟨ D3 ⟨ B0 ⟩ D2 ⟩ D3| represent |16|.
+
+Increment can be performed to the left or the right of a |SBinary|, defined symmetrically:\\
+\begin{minipage}[t]{0.45\textwidth}
+\begin{spec}
+incL : SBinary → SBinary
+incL B0            = B1
+incL B1            = D1 ⟨ B0 ⟩ D1
+incL (D1 ⟨ b ⟩ d)  = D2 ⟨ b ⟩ d
+incL (D2 ⟨ b ⟩ d)  = D3 ⟨ b ⟩ d
+incL (D3 ⟨ b ⟩ d)  = D2 ⟨ incL b ⟩ d {-"~~,"-}
+\end{spec}
+\end{minipage}
+\begin{minipage}[t]{0.45\textwidth}
+\begin{spec}
+incR : SBinary → SBinary
+incR B0            = B1
+incR B1            = D1 ⟨ B0 ⟩ D1
+incR (d ⟨ b ⟩ D1)  = d ⟨ b ⟩ D2
+incR (d ⟨ b ⟩ D2)  = d ⟨ b ⟩ D3
+incR (d ⟨ b ⟩ D3)  = d ⟨ incR b ⟩ D2 {-"~~."-}
+\end{spec}
+\end{minipage}\\
+Carrying is invoked when the digit at the end is |D3|.
+Applying |incL| to |D3 ⟨ D3 ⟨ B1 ⟩ D1 ⟩ D1|, a ``left-saturated'' representation of |16|, for example,
+results in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1|.
+Observe that carrying does not propagate to the right half of the number.
+Instead, |incL| reaches the middle of the number and go ``deeper'' by turning a |B1| into a |D1 ⟨ B0 ⟩ D1|.
+Meanwhile, decrement is defined by (we show the righthand side variant):
+\begin{spec}
+decR : SBinary → SBinary
+decR B0                      = B0
+decR B1                      = B0
+decR (D1 ⟨ B0 ⟩ D1)          = B1
+decR (D2 ⟨ B0 ⟩ D1)          = D1 ⟨ B0 ⟩ D1
+decR (D3 ⟨ B0 ⟩ D1)          = D2 ⟨ B0 ⟩ D1
+decR (d ⟨ B1 ⟩ D1)           = d ⟨ B0 ⟩ D2
+decR (d ⟨ df ⟨ b ⟩ dr ⟩ D1)  = d ⟨ decR (df ⟨ b ⟩ dr) ⟩ D2
+decR (d ⟨ b ⟩ D2)            = d ⟨ b ⟩ D1
+decR (d ⟨ b ⟩ D3)            = d ⟨ b ⟩ D2 {-"~~."-}
+\end{spec}
+Borrowing happens when the rightmost digit is |D1|.
+Again, |decR| and |incR| recurse on different cases, thereby achieving amortised $O(1)$ complexity when they are mixed.
+Performing |decR (D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1)|, for example,
+yields |D2 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D2| --- we initiate borrowing from the right, and stops when |D1 ⟨ B0 ⟩ D1| in the middle reduces to |B1|.
+Applying |incR| to the result yields |D2 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D3|.
+
+One can imagine how we may support |head| in $O(1)$ , and |cons|, |tail|, |snoc|, |init| in worst-case $O(\log n)$ and amortised $O(1)$ time.
+
+\todo{What's wrong with this? Why do we need 3-tuple?}
 
 
 \section{Fractional digits}

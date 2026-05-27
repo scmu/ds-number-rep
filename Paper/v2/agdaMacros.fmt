@@ -140,8 +140,8 @@
 
 %format BLANK = "~~"
 
-%format ⟨ = "\langle"
-%format ⟩ = "\rangle"
+%format ⟨ = "\!\langle\!"
+%format ⟩ = "\!\rangle\!"
 %format ⊥ = "\bot"
 %format ≡ = "\equiv"
 %format ≢ = "\not\equiv"
@@ -157,6 +157,7 @@
 %format D3 = "\mathbf{3}"
 %format N0 = "\lbrack\rbrack"
 %format B0 = "\lbrack\rbrack"
+%format B1 = "\lbrack 1\rbrack"
 %format zero = "\mathbb{0}"
 %format one = "\mathbb{1}"
 %format two = "\mathbb{2}"
