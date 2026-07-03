@@ -310,6 +310,132 @@ Asymptote-wise, it appears to be a good improvement over the simple built-in lis
 provided that you only add to and remove from one end of the list, and perform indexing more than |append|.
 What if we want a faster append?
 
+\subsection{Indices as binary numbers}
+\label{sec:binary-index}
+
+Just as |Fin n| --- the type of naturals below |n|, with |iz : Fin (inc n)| and |is : Fin n → Fin (inc n)| mirroring |zero| and |suc| --- indexes a length-|n| vector, |Idx n| will index a |RAL A n|.
+Our claim is that |Idx| is itself a number system: where |Fin| gives a \emph{unary} account of the naturals below a bound, |Idx| gives a \emph{binary} one, laid out along digits of |n|.
+We make the correspondence exact with a pair of conversions between |Idx n| and |Fin (toN n)|.
+
+Consider first the zeroless representation.
+An index selects a position within one digit and, if the element it seeks lives further in, descends into the doubled tail.
+A |D1| digit stores one element and has two subtrees, giving one base position |ez1| and two recursive branches |_cA1|, |_cB1|; a |D2| digit stores two elements, giving base positions |ez2|, |eo2| and branches |_cA2|, |_cB2|:
+\begin{code}
+  data Idx : Binary → Set where
+    ez1   : ∀ {n} →          Idx (D1 ∷ n)
+    _cA1  : ∀ {n} → Idx n →  Idx (D1 ∷ n)
+    _cB1  : ∀ {n} → Idx n →  Idx (D1 ∷ n)
+    ez2   : ∀ {n} →          Idx (D2 ∷ n)
+    eo2   : ∀ {n} →          Idx (D2 ∷ n)
+    _cA2  : ∀ {n} → Idx n →  Idx (D2 ∷ n)
+    _cB2  : ∀ {n} → Idx n →  Idx (D2 ∷ n) {-"~~."-}
+\end{code}
+Counting the constructors of a digit recovers its weight: |D1| contributes |1| base position plus |2| branches into the tail, and |D2| contributes |2| plus |2|.
+The function |lookup| follows an index through the list in lockstep, projecting from the paired-up elements as it recurses:
+\begin{code}
+  lookup : ∀ {A n} → RAL A n → Idx n → A
+  lookup (one x    ∷ xs)  ez1      = x
+  lookup (one x    ∷ xs)  (i cA1)  = proj₁ (lookup xs i)
+  lookup (one x    ∷ xs)  (i cB1)  = proj₂ (lookup xs i)
+  lookup (two x y  ∷ xs)  ez2      = x
+  lookup (two x y  ∷ xs)  eo2      = y
+  lookup (two x y  ∷ xs)  (i cA2)  = proj₁ (lookup xs i)
+  lookup (two x y  ∷ xs)  (i cB2)  = proj₂ (lookup xs i) {-"~~."-}
+\end{code}
+
+To pin down that |Idx n| enumerates the naturals below |toN n|, we convert to |Fin (toN n)|.
+Following \citet{HinzeSwierstra:22:Calculating}, reading an index outward as a binary numeral yields |toF : Idx n → Fin (toN n)|, doubling the tail contribution at each digit with |_dblO| and |_dblI|.
+
+The inverse direction is more interesting.
+Given a position in |Fin (toN n)|, we peel off the current digit by halving with |_halfF|, which splits a doubled range into a tail position and a remainder:
+\begin{code}
+  _halfF : ∀ {n} → Fin (2 * n) → (Fin n × Fin 2)
+  iz           halfF = iz  , iz
+  is iz        halfF = iz  , is iz
+  is (is i)    with i halfF
+  ... | q , r  = is q , r {-"~~,"-}
+
+  fromF : ∀ {n} → Fin (toN n) → Idx n
+  fromF {D1 ∷ n} iz           = ez1
+  fromF {D1 ∷ n} (is i)       with i halfF
+  ... | j , iz    = (fromF j) cA1
+  ... | j , is iz = (fromF j) cB1
+  fromF {D2 ∷ n} iz           = ez2
+  fromF {D2 ∷ n} (is iz)      = eo2
+  fromF {D2 ∷ n} (is (is i))  with i halfF
+  ... | j , iz    = (fromF j) cA2
+  ... | j , is iz = (fromF j) cB2 {-"~~."-}
+\end{code}
+Each |with| clause is one digit of binary long division: |_halfF| tells us whether the position falls on the left or right subtree, or on one of the elements stored locally, and |fromF| recurses on the quotient.
+Together with |toF|, this exhibits |Idx n| as just another notation for |Fin (toN n)| --- a binary numeral for the same finite range that |Fin| writes in unary.
+
+Because |Idx| is a number system, it carries its own arithmetic.
+The zero index |izero| points at the element |cons| has just placed at the front, and |isucc| is the successor on positions:
+\begin{code}
+  izero : ∀ {n} → Idx (inc n)
+  izero {B0}      = ez1
+  izero {D1 ∷ n}  = ez2
+  izero {D2 ∷ n}  = ez1 {-"~~,"-}
+
+  isucc : ∀ {n} → Idx n → Idx (inc n)
+  isucc ez1      = eo2
+  isucc (i cA1)  = i cA2
+  isucc (i cB1)  = i cB2
+  isucc ez2      = izero cA1
+  isucc eo2      = izero cB1
+  isucc (i cA2)  = (isucc i) cA1
+  isucc (i cB2)  = (isucc i) cB1 {-"~~."-}
+\end{code}
+The last two clauses are the carry: incrementing a position that has run off the end of a |D2| digit forces a successor \emph{one digit up}, exactly as |inc| carries.
+These connect to the container through the specification of a one-sided flexible array \citep{HinzeSwierstra:22:Calculating}:
+\begin{spec}
+  lookup-izero  : ∀ {A n} (x : A) (xs : RAL A n)
+                → lookup (cons x xs) izero ≡ x
+  lookup-isucc  : ∀ {A n} (x : A) (xs : RAL A n) (i : Idx n)
+                → lookup (cons x xs) (isucc i) ≡ lookup xs i
+  lookup-head   : ∀ {A n} (xs : RAL A (inc n))
+                → head xs ≡ lookup xs izero
+  lookup-tail   : ∀ {A n} (xs : RAL A (inc n)) (i : Idx n)
+                → lookup (tail xs) i ≡ lookup xs (isucc i) {-"~~."-}
+\end{spec}
+With the zeroless |tail : RAL A (inc n) → RAL A n|, dropping the head is mirrored on indices by |isucc|.
+
+Moving to the redundant representation of Section~\ref{sec:redundant-binary} changes nothing structural.
+We added a digit to the number, so we add constructors to the index; the recipe is unchanged.
+A |D3| digit stores three elements and keeps its two subtrees, contributing three base positions |ez3|, |eo3|, |et3| and two branches |_cA3|, |_cB3|:
+\begin{code}
+    ez3   : ∀ {n} →          Idx (D3 ∷ n)
+    eo3   : ∀ {n} →          Idx (D3 ∷ n)
+    et3   : ∀ {n} →          Idx (D3 ∷ n)
+    _cA3  : ∀ {n} → Idx n →  Idx (D3 ∷ n)
+    _cB3  : ∀ {n} → Idx n →  Idx (D3 ∷ n) {-"~~."-}
+\end{code}
+The clauses of |fromF| and |isucc| for |D3| are filled in by the same pattern; the carry in |isucc| again threads through |izero| on the tail, just as it did for |D2|:
+\begin{spec}
+  isucc eo3      = izero cA2
+  isucc et3      = izero cB2
+  isucc (i cA3)  = (isucc i) cA2
+  isucc (i cB3)  = (isucc i) cB2 {-"~~."-}
+\end{spec}
+
+In Section~\ref{sec:redundant-binary} the redundant |tail| takes a |RAL A n| to a |RAL A (dec n)|, so an index for the shortened list lives in |Idx (dec n)|.
+To state how |lookup| behaves under |tail| we must send such an index back into the original number, which is the role of |ishift|:
+\begin{spec}
+  ishift : ∀ {n} → Idx (dec n) → Idx n
+  ishift {D2 ∷ n}  ez1      = eo2
+  ishift {D2 ∷ n}  (i cA1)  = i cA2
+  ishift {D2 ∷ n}  (i cB1)  = i cB2 {-"~~."-}
+\end{spec}
+On a digit that has spare room, |ishift| merely relabels a position one digit up.
+The interesting clauses are those where |dec| borrowed from the tail (the case |D1 ∷ d ∷ n|): there |ishift| reaches inside with |izero| on the now-nonempty tail, the mirror image of the borrow.
+With |ishift| in hand the tail law now phrased with |dec| rather than |inc|:
+\begin{spec}
+  lookup-tail : ∀ {A n} (xs : RAL A n) (i : Idx (dec n))
+              → lookup (tail xs) i ≡ lookup xs (ishift i) {-"~~."-}
+\end{spec}
+
+The move that took us from unary lists to binary numbers for \emph{sizes} thus also yields binary numbers for \emph{positions}: |Idx| is the ornament of |Binary| in the index direction, just as |RAL| is its ornament in the data direction, both cut to the same digits.
+
 \section{Symmetric representation}
 
 %format df = "{\Var d}_{f}"
@@ -417,6 +543,215 @@ Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
  D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~."-}
 \end{spec}
 
+\subsection{Fractional digits}
+
+What is a fractional digit?
+The intuition above suggests that a digit should be allowed to carry a value that, while not an integer on its own, contributes an integer when multiplied by its positional weight.
+In a symmetric binary number, the digits surrounding the middle at depth |n| have weight $2^n$.
+We therefore let a digit at depth |n| carry a \emph{fraction} whose denominator is $2^n$:
+\begin{code}
+  data Frac : ℕ → Set where
+    one        : Frac 0
+    [_+_]/2    : ∀ {n} → Frac n → Frac n → Frac (suc n)
+    [_+_+_]/2  : ∀ {n} → Frac n → Frac n → Frac n → Frac (suc n) {-"~~."-}
+\end{code}
+A |Frac n| is a non-empty tree whose internal nodes have two or three children and whose every leaf sits at depth |n|.
+The constructors record how a fraction is built: |one| is the whole $1$, while |[ f + g ]/2| and |[ f + g + h ]/2| average the (equal-depth) fractions they contain, halving the denominator's exponent by one at each level.
+Counting the leaves gives the numerator:
+\begin{code}
+  sizeF : ∀ {n} → Frac n → ℕ
+  sizeF one              = 1
+  sizeF [ f + g ]/2      = sizeF f + sizeF g
+  sizeF [ f + g + h ]/2  = sizeF f + (sizeF g + sizeF h) {-"~~."-}
+\end{code}
+A fraction |f : Frac n| denotes the dyadic rational $\mathit{sizeF}\;f / 2^{n}$.
+For example, |one : Frac 0| denotes $1/2^0 = 1$; |[ one + one ]/2 : Frac 1| denotes $2/2^1 = 1$; and |[ one + one + one ]/2 : Frac 1| denotes $3/2^1 = 1\frac12$ --- a genuinely fractional digit.
+At depth |n|, where the positional weight is $2^n$, such a digit contributes exactly $\mathit{sizeF}\;f$ to the represented number.
+
+\subsection{The symmetric fractional binary}
+
+We now decorate each digit of the symmetric, zeroless, redundant representation of Section~\ref{sec:redundant-binary} with a fraction of the appropriate depth\todo{elaborate on Digit}:
+\begin{code}
+  data Digit : ℕ → Set where
+    D1 : ∀ {n} → Frac n                    → Digit n
+    D2 : ∀ {n} → Frac n → Frac n           → Digit n
+    D3 : ∀ {n} → Frac n → Frac n → Frac n  → Digit n {-"~~,"-}
+  data Binary : ℕ → Set where
+    B0     : ∀ {n} → Binary n
+    B1     : ∀ {n} → Frac n → Binary n
+    _⟨_⟩_  : ∀ {n} → Digit n → Binary (suc n) → Digit n → Binary n {-"~~."-}
+\end{code}
+The depth index increases by one as we descend towards the middle, mirroring the doubling of weights.
+A number is a |Binary 0|.
+Its value is obtained by summing the fractional contributions:
+\begin{code}
+  sizeB : ∀ {n} → Binary n → ℕ
+  sizeB B0            = 0
+  sizeB (B1 f)        = sizeF f
+  sizeB (df ⟨ b ⟩ dr) = sizeD df + (sizeB b + sizeD dr) {-"~~,"-}
+
+  toN : Binary 0 → ℕ
+  toN = sizeB {-"~~,"-}
+\end{code}
+where |sizeD| sums the fractions of a digit.
+Adding an element amounts to carrying a fraction inward.
+More generally than incrementing, |addFL| adds an arbitrary fraction |f| at the left end:
+\begin{code}
+  addFL : ∀ {n} → Frac n → Binary n → Binary n
+  addFL f B0                  = B1 f
+  addFL f (B1 g)              = D1 f ⟨ B0 ⟩ D1 g
+  addFL f (D1 g ⟨ b ⟩ dr)     = D2 f g ⟨ b ⟩ dr
+  addFL f (D2 g h ⟨ b ⟩ dr)   = D3 f g h ⟨ b ⟩ dr
+  addFL f (D3 g h i ⟨ b ⟩ dr) = D2 f g ⟨ addFL [ h + i ]/2 b ⟩ dr {-"~~."-}
+\end{code}
+The last case is the crucial part.
+When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into the single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |addFL|.
+Adding a fraction at the right end, |addFR|, is defined symmetrically.
+The ordinary increments are now simply the addition of the whole unit |one| at either end:
+\begin{code}
+  incL : Binary 0 → Binary 0
+  incL b = addFL one b {-"~~,"-}
+
+  incR : Binary 0 → Binary 0
+  incR b = addFR one b {-"~~."-}
+\end{code}
+Decrement is subtler, because a leading |D1| has nothing to spare. To borrow, we must reach inward and split a next-depth fraction back into two --- the exact mirror of the |D3| carry in |addFL|.
+Removing an element from the left is |decL|:
+\begin{code}
+  decL : ∀ {n} → Binary n → Binary n
+  decL B0                            = B0
+  decL (B1 f)                        = B0
+  decL (D2 f g ⟨ b ⟩ dr)             = D1 g ⟨ b ⟩ dr
+  decL (D3 f g h ⟨ b ⟩ dr)           = D2 g h ⟨ b ⟩ dr
+  decL (D1 f ⟨ B0 ⟩ D1 g)            = B1 g
+  decL (D1 f ⟨ B1 [ g + h ]/2 ⟩ dr)  = D2 g h ⟨ B0 ⟩ dr
+  decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ b ⟩ dr') ⟩ dr) = D2 g h ⟨ decL m ⟩ dr {-"~~,"-}
+\end{code}
+with the remaining cases analogous; the right-end |decR| is symmetric and omitted.
+These operations respect the semantics at every depth: |addFL f| adds a whole tree of |sizeF f| elements, and |decL| removes the leftmost such tree.
+\begin{code}
+  addFL-correct : ∀ {n} (f : Frac n) (b : Binary n)
+                → sizeB (addFL f b) ≡ sizeF f + sizeB b {-"~~."-}
+\end{code}
+The genuine increment and decrement are the special case at depth |0|, where |one| --- and hence the leftmost tree --- is a single leaf of size |1|.
+They therefore change the element count by exactly one:
+\begin{code}
+  incL-correct : ∀ (b : Binary 0) → toN (incL b) ≡ suc (toN b) {-"~~,"-}
+  decL-correct : ∀ (b : Binary 0) → toN (decL b) ≡ pred (toN b) {-"~~."-}
+\end{code}
+
+\subsection{Addition}
+
+We can now solve the problem that stumped the plain symmetric representation.
+Recall that, adding two numbers by stripping their outermost digits and recursing, we were forced to store an \emph{odd} number in the middle.
+Fractional digits absorb the difficulty.
+Rather than splitting an odd leftover evenly, we gather all the fractions that meet in the middle and repackage them into next-depth fractions --- each the average of two or three of the originals --- threading the result inward as an ordinary carry.
+To carry a whole digit we allow it to be empty as well:
+\begin{code}
+  data Digit' : ℕ → Set where
+    D0 : ∀ {n} → Digit' n
+    D1 : ∀ {n} → Frac n                    → Digit' n
+    D2 : ∀ {n} → Frac n → Frac n           → Digit' n
+    D3 : ∀ {n} → Frac n → Frac n → Frac n  → Digit' n {-"~~."-}
+\end{code}
+The heart of addition is |combineDigits|, which merges the two inner digits meeting in the middle (one from each operand) with the incoming carry digit into a single digit \emph{one level deeper}.
+Together the three inputs hold some number $t$ of depth-|n| fractions, with $2 \le t \le 9$.
+We repartition them into groups of two or three --- each group becoming one next-depth fraction via |[ _ + _ ]/2| or |[ _ + _ + _ ]/2| --- producing a |Digit'| of $a + b$ fractions with $t = 2a + 3b$.
+The division into twos and threes is not forced, we simply fix one:
+\begin{spec}
+  combineDigits (D1 f)      D0           (D1 g)        = D1 [ f + g ]/2
+  combineDigits (D1 f)      D0           (D3 g h i)    = D2 [ f + g ]/2 [ h + i ]/2
+  combineDigits (D3 f g h)  (D3 i j k)   (D3 l m p)    = D3 [ f + g + h ]/2 [ i + j + k ]/2 [ l + m + p ]/2 {-"~~,"-}
+\end{spec}
+and so on for the remaining cases, which group their fractions in the same left-to-right fashion.
+Addition then keeps the two outermost digits and recurses on the middles, feeding the combined carry inward:
+\begin{code}
+  add3 : ∀ {n} → Binary n → Digit' n → Binary n → Binary n
+  add3 B0            d y               = addD'L d y
+  add3 (B1 f)        d y               = addFL f (addD'L d y)
+  add3 (xf ⟨ x ⟩ xr) d B0             = addD'R (xf ⟨ x ⟩ xr) d
+  add3 (xf ⟨ x ⟩ xr) d (B1 f)         = addFR (addD'R (xf ⟨ x ⟩ xr) d) f
+  add3 (xf ⟨ x ⟩ xr) d (yf ⟨ y ⟩ yr)  = xf ⟨ add3 x (combineDigits xr d yf) y ⟩ yr {-"~~,"-}
+
+  add : Binary 0 → Binary 0 → Binary 0
+  add x y = add3 x D0 y {-"~~."-}
+\end{code}
+Here |addD'L| and |addD'R| add a carry digit to a number by repeated |addFL|/|addFR|.
+Crucially, |add3| is a genuine \emph{digit-by-digit} algorithm, each recursive call descends one depth, where the weights have doubled.
+It computes the right answer:
+\begin{code}
+  add-correct : ∀ (x y : Binary 0) → toN (add x y) ≡ toN x + toN y {-"~~."-}
+\end{code}
+
+\subsection{Finger Trees}
+
+As before, each numerical type induces a container by ornamenting its constructors with data.
+A fraction |f : Frac n| becomes a \emph{tree} holding |sizeF f| elements, whose branching follows |f| exactly:
+\begin{code}
+  data Tree (A : Set) : (n : ℕ) → Frac n → Set where
+    leaf   : A → Tree A 0 one
+    node2  : ∀ {n f g}    → Tree A n f → Tree A n g               → Tree A (suc n) [ f + g ]/2
+    node3  : ∀ {n f g h}  → Tree A n f → Tree A n g → Tree A n h  → Tree A (suc n) [ f + g + h ]/2 {-"~~."-}
+\end{code}
+These are precisely the internal $2$-$3$ nodes of a Finger Tree: |[ f + g ]/2| is realised by a |node2|, and |[ f + g + h ]/2| by a |node3|.
+A |Digit| ornaments into a |Some|, and a |Binary| into a |FingerTree|:
+\begin{code}
+  data Some (A : Set) (n : ℕ) : Digit n → Set where
+    one    : ∀ {f}     → Tree A n f                             → Some A n (D1 f)
+    two    : ∀ {f g}   → Tree A n f → Tree A n g                → Some A n (D2 f g)
+    three  : ∀ {f g h} → Tree A n f → Tree A n g → Tree A n h   → Some A n (D3 f g h) {-"~~,"-}
+  data FingerTree (A : Set) (n : ℕ) : Binary n → Set where
+    nil        : FingerTree A n B0
+    singleton  : ∀ {f} → Tree A n f → FingerTree A n (B1 f)
+    more       : ∀ {df dr b} → Some A n df → FingerTree A (suc n) b → Some A n dr
+               → FingerTree A n (df ⟨ b ⟩ dr) {-"~~."-}
+\end{code}
+This is exactly the Finger Tree of \citet{HinzePaterson:06:Finger}: a |more| node is a prefix (|Some|), a spine of one-deeper trees, and a suffix (|Some|); |nil| and |singleton| are the two shallow cases.
+The operations transfer directly.
+Adding an element to the left mirrors |addFL|:
+\begin{code}
+  cons' : ∀ {A n b f} → Tree A n f → FingerTree A n b → FingerTree A n (addFL f b)
+  cons' x nil                    = singleton x
+  cons' x (singleton y)          = more (one x) nil (one y)
+  cons' x (more (one y) b r)     = more (two x y) b r
+  cons' x (more (two y z) b r)   = more (three x y z) b r
+  cons' x (more (three y z w) b r) = more (two x y) (cons' (node2 z w) b) r {-"~~,"-}
+
+  cons : ∀ {A b} → A → FingerTree A 0 b → FingerTree A 0 (incL b)
+  cons x xs = cons' (leaf x) xs {-"~~."-}
+\end{code}
+The carry case builds a |node2 z w| and conses it into the spine --- the ornamented image of |addFL| turning a |D3| into a next-depth |[ h + i ]/2|.
+Because the leftmost element always sits at the front, |head| is $O(1)$:
+\begin{code}
+  head : ∀ {A b} → FingerTree A 0 b → (b ≢ B0) → A {-"~~,"-}
+\end{code}
+while |snoc| and |tail| mirror |addFR| and |decL|:
+\begin{code}
+  tail : ∀ {A n b} → FingerTree A n b → FingerTree A n (decL b) {-"~~."-}
+\end{code}
+
+\subsection{Concatenation}
+
+Concatenation is the container-level image of |add|, and it inherits its digit-by-digit efficiency.
+The carry digit of |add3| becomes a bundle of up to three trees, a |Some'| (the ornament of |Digit'|, with an empty case |zero|), and |combineDigits| becomes |combineSome|, which packs the two inner suffix/prefix bundles together with the carry into next-depth nodes.
+The recursion mirrors |add3| line for line:
+\begin{code}
+  glue : ∀ {A n b₁ d b₂} → FingerTree A n b₁ → Some' A n d → FingerTree A n b₂
+       → FingerTree A n (add3 b₁ d b₂)
+  glue nil             s ys              = appendSome'L s ys
+  glue (singleton x)   s ys              = cons' x (appendSome'L s ys)
+  glue (more xf xs xr) s nil             = appendSome'R (more xf xs xr) s
+  glue (more xf xs xr) s (singleton y)   = snoc' (appendSome'R (more xf xs xr) s) y
+  glue (more xf xs xr) s (more yf ys yr) = more xf (glue xs (combineSome xr s yf) ys) yr {-"~~,"-}
+
+  append : ∀ {A b₁ b₂} → FingerTree A 0 b₁ → FingerTree A 0 b₂ → FingerTree A 0 (add b₁ b₂)
+  append xs ys = glue xs zero ys {-"~~."-}
+\end{code}
+This is the standard Finger Tree concatenation, and its type states precisely that |append| realises |add| on the sizes.
+Since |add| is digit-by-digit, |append| runs in $O(\log (\min (m , n)))$ time.
+
+\subsection{Indexing}
+\todo{FingerTree indexing}
 
 \section{Conclusions}
 
