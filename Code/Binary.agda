@@ -1,11 +1,8 @@
 module Binary where
 
 open import Data.Nat using (ℕ; zero; suc; _+_; pred)
-open import Data.Empty using (⊥-elim)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃₂)
 open import Relation.Binary.PropositionalEquality
-
--- ℕ functions and lemmas
 
 2* : ℕ → ℕ
 2* zero    = zero
@@ -18,99 +15,61 @@ open import Relation.Binary.PropositionalEquality
 1+n≢0 : ∀ {m} → ∀ n → n ≡ suc m → n ≢ 0
 1+n≢0 (suc n) p ()
 
--- Binary numbers
-
--- Digits (0 or 1)
 data Digit : Set where
     D0 : Digit
     D1 : Digit
 
--- Binary numbers (least significant digit first)
 data Binary : Set where
-    B0  : Binary                     -- zero
-    _⟨_⟩ : Digit → Binary → Binary    -- add a digit on top
+    B0  : Binary
+    _⟨_⟩ : Digit → Binary → Binary
 
-------------------------------------------------------------------------
--- Conversion between Binary and ℕ
-------------------------------------------------------------------------
-
--- Digit to ℕ
 DtoN : Digit → ℕ
 DtoN D0 = 0
 DtoN D1 = 1
 
--- Binary to ℕ
 toN : Binary → ℕ
 toN B0        = 0
 toN (d ⟨ b ⟩) = DtoN d + 2* (toN b)
 
--- Increment: worst case O(log n), amortized O(1)
+-- worst case O(log n), amortized O(1)
 inc : Binary → Binary
 inc B0         = D1 ⟨ B0 ⟩
 inc (D0 ⟨ b ⟩) = D1 ⟨ b ⟩
 inc (D1 ⟨ b ⟩) = D0 ⟨ inc b ⟩
 
-data Peano-View : Binary → Set where
-    as-zero : Peano-View B0
-    as-succ : (i : Binary) → Peano-View (inc i)
-
 -- Decrement: worst case O((log n)²), amortized O(log n)
 dec : Binary → Binary
-dec B0         = B0
-dec (D0 ⟨ b ⟩) with toN b
-... | zero     = B0
-... | suc n    = D1 ⟨ dec b ⟩
-dec (D1 ⟨ b ⟩) = D0 ⟨ b ⟩
+dec B0              = B0
+dec (D0 ⟨ b ⟩)      = D1 ⟨ dec b ⟩
+dec (D1 ⟨ B0 ⟩)     = B0
+dec (D1 ⟨ x ⟨ b ⟩ ⟩) = D0 ⟨ (x ⟨ b ⟩) ⟩
 
 fromN : ℕ → Binary
 fromN zero    = B0
 fromN (suc n) = inc (fromN n)
 
-------------------------------------------------------------------------
--- Correctness lemmas for conversions
-------------------------------------------------------------------------
+-- Correctness lemmas
 
--- Increment corresponds to suc
 inc-correct : ∀ b → toN (inc b) ≡ suc (toN b)
 inc-correct B0         = refl
 inc-correct (D0 ⟨ b ⟩) = refl
 inc-correct (D1 ⟨ b ⟩) = cong 2* (inc-correct b)
-
--- Decrement corresponds to pred
-dec-correct : ∀ b → toN (dec b) ≡ pred (toN b)
-dec-correct B0         = refl
-dec-correct (D0 ⟨ b ⟩) with toN b | inspect toN b
-... | zero  | [ eq ]   = refl
-... | suc n | [ eq ]   = cong suc (cong 2* (trans (dec-correct b) (cong pred eq)))
-dec-correct (D1 ⟨ b ⟩) = refl
 
 -- toN is a left-inverse of fromN
 toN-fromN : ∀ n → toN (fromN n) ≡ n
 toN-fromN zero    = refl
 toN-fromN (suc n) = trans (inc-correct (fromN n)) (cong suc (toN-fromN n))
 
-------------------------------------------------------------------------
--- Properties of Binary representation
-------------------------------------------------------------------------
-
--- Example: zero is not uniquely represented
 zero-ambiguous : ∃ λ x → (B0 ≢ x) × (0 ≡ toN x )
 zero-ambiguous = (D0 ⟨ B0 ⟩) , (λ ()) , refl
 
--- redundancy: multiple representations map to same ℕ
 redundant : ∃₂ λ x y → (x ≢ y) × (toN x ≡ toN y)
 redundant = B0 , zero-ambiguous
 
-------------------------------------------------------------------------
--- Random Access Lists (RAL) indexed by Binary
-------------------------------------------------------------------------
-
--- Some stores data depending on the digit
 data Some (A : Set) : Digit → Set where
     zero :     Some A D0
     one  : A → Some A D1
 
--- RAL indexed by Binary
 data RAL (A : Set) : Binary → Set where
     nil  :                                      RAL A B0
     more : ∀ {d b} → Some A d → RAL (A × A) b → RAL A (d ⟨ b ⟩)
@@ -127,22 +86,11 @@ head {_} {B0}      (more (one x) xs) = x
 head {_} {D0 ⟨ b ⟩} (more (one x) xs) = x
 head {_} {D1 ⟨ b ⟩} (more zero xs)    = proj₁ (head xs)
 
--- head' (with proof of non-emptiness): worst case O(log n)
-head' : ∀ {A b} → RAL A b → (toN b ≢ 0) → A
-head' nil               p = ⊥-elim (p refl)
-head' (more zero xs)    p = proj₁ (head' xs (2*n≢0⇒n≢0 p))
-head' (more (one x) xs) p = x
-
 -- tail: worst case O(log n), amortized O(1)
--- can be optimized by storing length
-tail : ∀ {A b} → RAL A b → RAL A (dec b)
-tail {A} {B0}       nil = nil
-tail {A} {D0 ⟨ b ⟩} (more zero xs) with toN b | inspect toN b
-... | zero  | [ eq ] = nil
-... | suc n | [ eq ] = more (one (proj₂ (head' xs (1+n≢0 (toN b) eq)))) (tail xs)
-tail {A} {D1 ⟨ b ⟩} (more (one x) xs) = more zero xs
-
--- Indices for Binary RAL (like Fin for ℕ)
+tail : ∀ {A b} → RAL A (inc b) → RAL A b
+tail {A} {B0} xs = nil
+tail {A} {D0 ⟨ b ⟩} (more (one x) xs) = more zero xs
+tail {A} {D1 ⟨ b ⟩} (more zero xs) = more (one (proj₂ (head xs))) (tail xs)
 
 data Idx : Binary → Set where
     _0₀ : ∀ {b} → Idx b → Idx (D0 ⟨ b ⟩)   -- left child

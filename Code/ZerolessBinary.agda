@@ -31,7 +31,6 @@ data Digit : Set where
     D1 : Digit
     D2 : Digit
 
--- Zeroless binary numbers (least significant digit first)
 data ZBinary : Set where
     B0  : ZBinary
     _⟨_⟩ : Digit → ZBinary → ZBinary
@@ -52,7 +51,7 @@ inc (D2 ⟨ n ⟩) = D1 ⟨ inc n ⟩
 dec : ZBinary → ZBinary
 dec B0              = B0
 dec (D1 ⟨ B0 ⟩)     = B0
-dec (D1 ⟨ d ⟨ n ⟩ ⟩) = D2 ⟨ dec (d ⟨ n ⟩) ⟩
+dec (D1 ⟨ b ⟩)      = D2 ⟨ dec b ⟩
 dec (D2 ⟨ n ⟩)      = D1 ⟨ n ⟩
 
 fromN : ℕ → ZBinary
@@ -63,13 +62,11 @@ d⟨n⟩-nonzero : ∀ d n → toN (d ⟨ n ⟩) ≢ 0
 d⟨n⟩-nonzero D1 n ()
 d⟨n⟩-nonzero D2 n ()
 
--- Increment corresponds to suc
 inc-correct : ∀ n → toN (inc n) ≡ suc (toN n)
 inc-correct B0         = refl
 inc-correct (D1 ⟨ n ⟩) = refl
 inc-correct (D2 ⟨ n ⟩) = cong suc (cong 2* (inc-correct n))
 
--- Decrement corresponds to pred
 dec-correct : ∀ n → toN (dec n) ≡ pred (toN n)
 dec-correct B0              = refl
 dec-correct (D1 ⟨ B0 ⟩)     = refl
@@ -115,31 +112,8 @@ fromN-toN (D2 ⟨ n ⟩) =
                             (cong suc (trans (inc-correct (fromN (2* (toN n))))
                                              (cong suc (toN-fromN (2* (toN n)))))))
 
-data Peano-View : ZBinary → Set where
-    as-zero : Peano-View B0
-    as-succ : (i : ZBinary) → Peano-View (inc i)
-
-view : ∀ n → Peano-View n
-view B0 = as-zero
-view (D1 ⟨ n ⟩) with view n
-... | as-zero = as-succ B0
-... | as-succ m = as-succ (D2 ⟨ m ⟩)
-view (D2 ⟨ n ⟩) = as-succ (D1 ⟨ n ⟩)
-
-VtoN : ∀ {n} → Peano-View n → ℕ
-VtoN as-zero = 0
-VtoN (as-succ n) = suc (toN n)
-
-view-correct : ∀ n → VtoN (view n) ≡ toN n
-view-correct B0 = refl
-view-correct (D1 ⟨ n ⟩) with view n
-... | as-zero = refl
-... | as-succ m = cong suc (cong 2* (sym (inc-correct m)))
-view-correct (D2 ⟨ n ⟩) = refl
-
--- Random Access Lists (RAL) indexed by Zeroless binary
 data Some (A : Set) : Digit → Set where
-    one : A     → Some A D1
+    one   : A     → Some A D1
     two   : A → A → Some A D2
 
 data RAL (A : Set) : ZBinary → Set where
@@ -156,7 +130,6 @@ head {_} {B0}       (more (one x) xs)  = x
 head {_} {D1 ⟨ n ⟩} (more (two x _) xs) = x
 head {_} {D2 ⟨ n ⟩} (more (one x) xs)   = x
 
--- Generalized head (used in tail')
 head' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
 head' nil                 nz = contradiction refl nz
 head' (more (one x) xs)   nz = x
@@ -196,13 +169,13 @@ _/2 {suc n} (is (is i)) with i /2
 ... | q , r = (is q) , r
 
 data Idx : ZBinary → Set where
-    0b₁ : ∀ {n} →         Idx (D1 ⟨ n ⟩)   -- first element
-    _1₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)   -- left child
-    _2₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)   -- right child
-    0b₂ : ∀ {n} →         Idx (D2 ⟨ n ⟩)   -- first element
-    1b₂ : ∀ {n} →         Idx (D2 ⟨ n ⟩)   -- second element
-    _2₂ : ∀ {n} → Idx n → Idx (D2 ⟨ n ⟩)   -- left child
-    _3₂ : ∀ {n} → Idx n → Idx (D2 ⟨ n ⟩)   -- right child
+    0b₁ : ∀ {n} →         Idx (D1 ⟨ n ⟩)
+    _1₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)
+    _2₁ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩)
+    0b₂ : ∀ {n} →         Idx (D2 ⟨ n ⟩)
+    1b₂ : ∀ {n} →         Idx (D2 ⟨ n ⟩)
+    _2₂ : ∀ {n} → Idx n → Idx (D2 ⟨ n ⟩)
+    _3₂ : ∀ {n} → Idx n → Idx (D2 ⟨ n ⟩)
     
 lookup : ∀ {A n} → RAL A n → Idx n → A
 lookup nil                   ()
@@ -305,7 +278,7 @@ lookup-tail {n = D2 ⟨ n ⟩} (more (one x) xs)    (i 3₂) = cong proj₂ (loo
 /2-inv-odd {suc _} (is (is i)) q eq with i /2 in eq'
 /2-inv-odd {suc _} (is (is i)) .(is q') refl | q' , is iz = cong is (cong is (/2-inv-odd i q' eq'))
 
-toF-fromF : ∀ {n} (i : Fin (toN n)) → toF {n} (fromF i) ≡ i
+toF-fromF : ∀ {n} (i : Fin (toN n)) → toF (fromF {n} i) ≡ i
 toF-fromF {D1 ⟨ n ⟩} iz = refl
 toF-fromF {D1 ⟨ n ⟩} (is i) with i /2 in eq
 ... | q , iz    = cong is (trans (cong _∙2+0 (toF-fromF q)) (/2-inv-even i q eq))
@@ -315,44 +288,3 @@ toF-fromF {D2 ⟨ n ⟩} (is iz) = refl
 toF-fromF {D2 ⟨ n ⟩} (is (is i)) with i /2 in eq
 ... | q , iz    = cong is (cong is (trans (cong _∙2+0 (toF-fromF q)) (/2-inv-even i q eq)))
 ... | q , is iz = cong is (cong is (trans (cong _∙2+1 (toF-fromF q)) (/2-inv-odd i q eq)))
-
--- data List-View (A : Set) : ZBinary → Set where
---     as-nil : List-View A B0
---     as-cons : ∀ {n : ZBinary} → A → RAL A n → List-View A (inc n)
-
--- lview : ∀ {A n} → RAL A n → List-View A n
--- lview nil = as-nil
--- lview (more (one x) xs) with lview xs
--- ... | as-nil = as-cons x nil
--- ... | as-cons (x₁ , x₂) xs' = as-cons x (more (two x₁ x₂) xs')
--- lview (more (two x x₁) xs) = as-cons x (more (one x₁) xs)
-
--- head'' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
--- head'' xs nz with lview xs
--- ... | as-nil = contradiction refl nz
--- ... | as-cons x xs' = x
-
--- tail'' : ∀ {A n} → RAL A (inc n) → RAL A n
--- tail'' xs with lview xs
--- ... | v = {!   !}
-
-data List-View (A : Set) : ZBinary → Set where
-    as-nil : List-View A B0
-    as-cons : ∀ {n : ZBinary} → A → RAL A (dec n) → List-View A n
-
-lview : ∀ {A n} → RAL A n → List-View A n
-lview nil = as-nil
-lview (more (one x) nil) = as-cons x nil
-lview (more (one x) xs@(more _ _)) with lview xs
-... | as-cons (x₁ , x₂) xs' = as-cons x (more (two x₁ x₂) xs')
-lview (more (two x x₁) xs) = as-cons x (more (one x₁) xs)
-
-head'' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-head'' xs nz with lview xs
-... | as-nil        = contradiction refl nz
-... | as-cons x xs' = x
-
-tail'' : ∀ {A n} → RAL A n → RAL A (dec n)
-tail'' xs with lview xs
-... | as-nil        = nil
-... | as-cons x xs' = xs'

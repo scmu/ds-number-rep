@@ -5,7 +5,6 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Fin using (Fin; opposite; inject₁; fromℕ) renaming (zero to iz; suc to is)
 open import Data.Product using (_×_; _,_; proj₁; proj₂)
 open import Relation.Binary.PropositionalEquality
-open import Relation.Nullary.Negation using (contradiction)
 open import Data.Nat.Properties using (suc-injective)
 
 2* : ℕ → ℕ
@@ -20,33 +19,33 @@ data Digit : Set where
     D1 : Digit
 
 data SNat : Set where
-    N0 : SNat
-    N1 : SNat
+    N0   : SNat
+    N1   : SNat
     _⟨_⟩_ : Digit → SNat → Digit → SNat
 
 incL : SNat → SNat
-incL N0 = N1
-incL N1 = D1 ⟨ N0 ⟩ D1
+incL N0          = N1
+incL N1          = D1 ⟨ N0 ⟩ D1
 incL (D1 ⟨ n ⟩ d) = D1 ⟨ (incL n) ⟩ d
 
 incR : SNat → SNat
-incR N0 = N1
-incR N1 = D1 ⟨ N0 ⟩ D1
+incR N0          = N1
+incR N1          = D1 ⟨ N0 ⟩ D1
 incR (d ⟨ n ⟩ D1) = d ⟨ (incR n) ⟩ D1
 
 decL : SNat → SNat
-decL N0 = N0
-decL N1 = N0
-decL (D1 ⟨ N0 ⟩ D1) = N1
-decL (D1 ⟨ N1 ⟩ d) = D1 ⟨ N0 ⟩ d
+decL N0                   = N0
+decL N1                   = N0
+decL (D1 ⟨ N0 ⟩ D1)        = N1
+decL (D1 ⟨ N1 ⟩ d)         = D1 ⟨ N0 ⟩ d
 decL (D1 ⟨ df ⟨ n ⟩ dr ⟩ d) = D1 ⟨ (decL (df ⟨ n ⟩ dr)) ⟩ d
 
 decR : SNat → SNat
-decR N0 = N0
-decR N1 = N0
-decR (d ⟨ N1 ⟩ D1) = d ⟨ N0 ⟩ D1
+decR N0                   = N0
+decR N1                   = N0
+decR (d ⟨ N1 ⟩ D1)         = d ⟨ N0 ⟩ D1
 decR (d ⟨ df ⟨ n ⟩ dr ⟩ D1) = d ⟨ (decR (df ⟨ n ⟩ dr)) ⟩ D1
-decR (D1 ⟨ N0 ⟩ D1) = N1
+decR (D1 ⟨ N0 ⟩ D1)        = N1
 
 DtoN : Digit → ℕ
 DtoN D1 = 1
@@ -124,35 +123,13 @@ incR≢0 N0 = λ ()
 incR≢0 N1 = λ ()
 incR≢0 (d ⟨ n ⟩ D1) = λ ()
 
-data Peano-View : SNat → Set where
-    as-zero : Peano-View N0
-    as-succ : (i : SNat) → Peano-View (incL i)
-
-view : ∀ n → Peano-View n
-view N0 = as-zero
-view N1 = as-succ N0
-view (D1 ⟨ n ⟩ D1) with view n
-... | as-zero   = as-succ N1
-... | as-succ i = as-succ (D1 ⟨ i ⟩ D1)
-
-VtoN : ∀ {n} → Peano-View n → ℕ
-VtoN as-zero = 0
-VtoN (as-succ n) = suc (toN n)
-
-view-correct : ∀ n → VtoN (view n) ≡ toN n
-view-correct N0 = refl
-view-correct N1 = refl
-view-correct (D1 ⟨ n ⟩ D1) with view n
-... | as-zero   = refl
-... | as-succ i = cong suc (cong suc (sym (incL-correct i)))
-
 data Some (A : Set) : Digit → Set where
     one : A → Some A D1
 
 data RAL (A : Set) : SNat → Set where
-    nil : RAL A N0
+    nil       : RAL A N0
     singleton : A → RAL A N1
-    more : ∀ {df n dr} → Some A df → RAL A n → Some A dr → RAL A (df ⟨ n ⟩ dr)
+    more      : ∀ {df n dr} → Some A df → RAL A n → Some A dr → RAL A (df ⟨ n ⟩ dr)
 
 cons : ∀ {A n} → A → RAL A n → RAL A (incL n)
 cons x nil                   = singleton x
@@ -187,10 +164,10 @@ tail (more (one x) xs@(more _ _ _) s) =
     in  more (one h) (tail xs) s
 
 init : ∀ {A n} → RAL A n → RAL A (decR n)
-init nil = nil
-init (singleton x) = nil
-init (more (one x) nil (one x₁)) = singleton x
-init (more (one x) (singleton x₁) (one x₂)) = more (one x) nil (one x₁)
+init nil                                     = nil
+init (singleton x)                           = nil
+init (more (one x) nil (one x₁))             = singleton x
+init (more (one x) (singleton x₁) (one x₂))  = more (one x) nil (one x₁)
 init (more (one x) xs@(more _ _ _) (one x₁)) = 
     let l = last xs (more-nonzero xs)
     in  more (one x) (init xs) (one l)
@@ -203,24 +180,24 @@ data Idx : SNat → Set where
 
 lookup : ∀ {A n} → RAL A n → Idx n → A
 lookup nil ()
-lookup (singleton x) 0b₁ = x
-lookup (more (one x) xs (one x₁)) 0f₁₁ = x
+lookup (singleton x)              0b₁     = x
+lookup (more (one x) xs (one x₁)) 0f₁₁    = x
 lookup (more (one x) xs (one x₁)) (i 1₁₁) = lookup xs i
-lookup (more (one x) xs (one x₁)) 0r₁₁ = x₁
+lookup (more (one x) xs (one x₁)) 0r₁₁    = x₁
 
 -- last index
 il : ∀ {n} → Fin (suc n)
 il = opposite iz
 
-data Max-View : ∀ {n} → Fin (suc n) → Set where
-    is-ip : ∀ {n} (i : Fin n) → Max-View (inject₁ i)
-    is-il : ∀ {n}             → Max-View {n} (fromℕ n)
+data LastView : ∀ {n} → Fin (suc n) → Set where
+    is-ij : ∀ {n} (i : Fin n) → LastView (inject₁ i)
+    is-il : ∀ {n}             → LastView {n} (fromℕ n)
 
-mview : ∀ {n} (i : Fin (suc n)) → Max-View i
-mview {zero}  iz     = is-il
-mview {suc n} iz     = is-ip iz
-mview {suc n} (is i) with mview i
-... | is-ip j = is-ip (is j)
+lview : ∀ {n} (i : Fin (suc n)) → LastView i
+lview {zero}  iz     = is-il
+lview {suc n} iz     = is-ij iz
+lview {suc n} (is i) with lview i
+... | is-ij j = is-ij (is j)
 ... | is-il   = is-il
 
 toF : ∀ {n} → Idx n → Fin (toN n)
@@ -230,11 +207,11 @@ toF {D1 ⟨ n ⟩ D1} (i 1₁₁) = is (inject₁ (toF i))
 toF {D1 ⟨ n ⟩ D1} 0r₁₁ = il
 
 fromF : ∀ {n} → Fin (toN n) → Idx n
-fromF {N1} iz = 0b₁
+fromF {N1}         iz = 0b₁
 fromF {D1 ⟨ n ⟩ D1} iz = 0f₁₁
-fromF {D1 ⟨ n ⟩ D1} (is i) with mview i
+fromF {D1 ⟨ n ⟩ D1} (is i) with lview i
 ... | is-il   = 0r₁₁
-... | is-ip j = (fromF j) 1₁₁
+... | is-ij j = (fromF j) 1₁₁
 
 ifirst : ∀ {n} → (toN n ≢ 0) → Idx n
 ifirst {N0} nz = ⊥-elim (nz refl)
@@ -261,14 +238,9 @@ isuccR {d ⟨ n ⟩ D1} 0r₁₁ = ilast (incR≢0 n) 1₁₁
 toF-fromF : ∀ {n} (i : Fin (toN n)) → toF {n} (fromF i) ≡ i
 toF-fromF {N1} iz = refl
 toF-fromF {D1 ⟨ n ⟩ D1} iz = refl
-toF-fromF {D1 ⟨ n ⟩ D1} (is i) with mview i
+toF-fromF {D1 ⟨ n ⟩ D1} (is i) with lview i
 ... | is-il   = refl
-... | is-ip j = cong (λ i → is (inject₁ i)) (toF-fromF {n} j)
-
--- ifirst-correct : ∀ {n} → (nz : toN n ≢ 0) → toF (ifirst nz) ≡ iz
--- isuccL-correct : ∀ {n} → (i : Idx n) → toF (isuccL i) ≡ is (toF i)
--- ilast-correct : ∀ {n} → toF ilast ≡ il
--- isuccR-correct : ∀ {n} → (i : Idx n) → toF (isuccR i) ≡ inject₁ (toF i)
+... | is-ij j = cong (λ i → is (inject₁ i)) (toF-fromF {n} j)
 
 lookup-ifirst : ∀ {A n} → (x : A) → (xs : RAL A n) → x ≡ lookup (cons x xs) (ifirst (incL≢0 n))
 lookup-ifirst _ nil                        = refl
@@ -293,25 +265,3 @@ lookup-isuccR _ (singleton x)              0b₁     = refl
 lookup-isuccR _ (more (one x) xs (one x₁)) 0f₁₁    = refl
 lookup-isuccR _ (more (one x) xs (one x₁)) (i 1₁₁) = lookup-isuccR x₁ xs i
 lookup-isuccR _ (more (one x) xs (one x₁)) 0r₁₁    = lookup-ilast x₁ xs
-
-data List-View (A : Set) : SNat → Set where
-    as-nil  : List-View A N0
-    as-cons : ∀ {n : SNat} → A → RAL A (decL n) → List-View A n
-
-lview : ∀ {A n} → RAL A n → List-View A n
-lview nil = as-nil
-lview (singleton x) = as-cons x nil
-lview (more (one x) nil (one x₁)) = as-cons x (singleton x₁)
-lview (more (one x) (singleton x₁) s) = as-cons x (more (one x₁) nil s)
-lview (more (one x) xs@(more _ _ _) s) with lview xs
-... | as-cons x₁ xs' = as-cons x (more (one x₁) xs' s)
-
-head' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-head' xs nz with lview xs
-... | as-nil        = ⊥-elim (nz refl)
-... | as-cons x xs' = x
-
-tail' : ∀ {A n} → RAL A n → RAL A (decL n)
-tail' xs with lview xs
-... | as-nil        = nil
-... | as-cons x xs' = xs'

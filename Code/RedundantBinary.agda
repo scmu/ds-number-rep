@@ -3,7 +3,7 @@ module RedundantBinary where
 
 open import Data.Nat using (ℕ; zero; suc; _+_; pred)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Fin using (Fin) renaming (zero to iz; suc to is)
+open import Data.Fin using (Fin; inject₁) renaming (zero to iz; suc to is)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃₂)
 open import Relation.Nullary.Negation using (contradiction)
 open import Relation.Binary.PropositionalEquality
@@ -23,7 +23,6 @@ data Digit : Set where
     D2 : Digit
     D3 : Digit
 
--- Redundant binary numbers (least significant digit first)
 data RBinary : Set where
     B0  : RBinary
     _⟨_⟩ : Digit → RBinary → RBinary
@@ -106,23 +105,6 @@ inc≢0 (D1 ⟨ n ⟩) = λ ()
 inc≢0 (D2 ⟨ n ⟩) = λ ()
 inc≢0 (D3 ⟨ n ⟩) = λ ()
 
-data Peano-View : RBinary → Set where
-    as-zero : Peano-View B0
-    as-succ : ∀ {n} → (i : RBinary) → (p : suc (toN i) ≡ toN n) → Peano-View n
-
-view : ∀ n → Peano-View n
-view B0 = as-zero
-view (d ⟨ n ⟩) = as-succ (dec (d ⟨ n ⟩)) (trans (cong suc (dec-correct (d ⟨ n ⟩))) (suc-pred (toN (d ⟨ n ⟩)) (d⟨n⟩-nonzero d n)))
-
-VtoN : ∀ {n} → Peano-View n → ℕ
-VtoN as-zero = 0
-VtoN (as-succ n p) = suc (toN n)
-
-view-correct : ∀ n → VtoN (view n) ≡ toN n
-view-correct B0 = refl
-view-correct (d ⟨ n ⟩) = trans (cong suc (dec-correct (d ⟨ n ⟩))) (suc-pred (toN (d ⟨ n ⟩)) (d⟨n⟩-nonzero d n))
-
--- Random Access Lists (RAL) indexed by Redundant binary
 data Some (A : Set) : Digit → Set where
     one   : A →         Some A D1
     two   : A → A →     Some A D2
@@ -137,13 +119,6 @@ cons x nil                        = more (one x) nil
 cons x (more (one x₁) xs)         = more (two x x₁) xs
 cons x (more (two x₁ x₂) xs)      = more (three x x₁ x₂) xs
 cons x (more (three x₁ x₂ x₃) xs) = more (two x x₁) (cons (x₂ , x₃) xs)
-
--- -- This version does not accept all shapes of RAL due to inc-gap
--- head : ∀ {A n} → RAL A (inc n) → A
--- head {_} {B0}      (more (one x) xs)         = x
--- head {_} {D1 ⟨ n ⟩} (more (two x x₁) xs)      = x
--- head {_} {D2 ⟨ n ⟩} (more (three x x₁ x₂) xs) = x
--- head {_} {D3 ⟨ n ⟩} (more (two x x₁) xs)      = x
 
 more-nonzero : ∀ {A d n} → RAL A (d ⟨ n ⟩) → (toN (d ⟨ n ⟩) ≢ 0)
 more-nonzero {_} {d} {n} _ p = contradiction (zero-unique (d ⟨ n ⟩) p) λ ()
@@ -176,6 +151,10 @@ _/2 {suc n} iz = iz , iz
 _/2 {suc n} (is iz) = iz , is iz
 _/2 {suc n} (is (is i)) with i /2
 ... | q , r = (is q) , r
+
+predFin : ∀ {n} → Fin n → Fin n
+predFin iz     = iz
+predFin (is n) = inject₁ n
 
 data Idx : RBinary → Set where
     0b₁ : ∀ {n} →         Idx (D1 ⟨ n ⟩)
@@ -237,40 +216,51 @@ fromF {D3 ⟨ n ⟩} (is (is (is i))) with i /2
 ... | j , iz    = (fromF j) 3₃
 ... | j , is iz = (fromF j) 4₃
 
-izero : ∀ {n} → (toN n ≢ 0) → Idx n
-izero {B0}      nz = ⊥-elim (nz refl)
-izero {D1 ⟨ n ⟩} nz = 0b₁
-izero {D2 ⟨ n ⟩} nz = 0b₂
-izero {D3 ⟨ n ⟩} nz = 0b₃
+izero : ∀ {n} → Idx (inc n)
+izero {B0}      = 0b₁
+izero {D1 ⟨ n ⟩} = 0b₂
+izero {D2 ⟨ n ⟩} = 0b₃
+izero {D3 ⟨ n ⟩} = 0b₂
+
+izero' : ∀ {n} → (toN n ≢ 0) → Idx n
+izero' {B0}      nz = ⊥-elim (nz refl)
+izero' {D1 ⟨ n ⟩} nz = 0b₁
+izero' {D2 ⟨ n ⟩} nz = 0b₂
+izero' {D3 ⟨ n ⟩} nz = 0b₃
 
 isucc : ∀ {n} → Idx n → Idx (inc n)
-isucc 0b₁ = 1b₂
+isucc 0b₁    = 1b₂
 isucc (i 1₁) = i 2₂
 isucc (i 2₁) = i 3₂
-isucc 0b₂ = 1b₃
-isucc 1b₂ = 2b₃
+isucc 0b₂    = 1b₃
+isucc 1b₂    = 2b₃
 isucc (i 2₂) = i 3₃
 isucc (i 3₂) = i 4₃
-isucc 0b₃ = 1b₂
-isucc 1b₃ = (izero λ ()) 2₂
-isucc 2b₃ = (izero λ ()) 3₂
+isucc 0b₃    = 1b₂
+isucc 1b₃    = izero 2₂
+isucc 2b₃    = izero 3₂
 isucc (i 3₃) = (isucc i) 2₂
 isucc (i 4₃) = (isucc i) 3₂
 
+-- shift up
 ishift : ∀ {n} → Idx (dec n) → Idx n
-ishift {D1 ⟨ d ⟨ n ⟩ ⟩} 0b₂ = (izero (d⟨n⟩-nonzero d n)) 1₁
-ishift {D1 ⟨ d ⟨ n ⟩ ⟩} 1b₂ = (izero (d⟨n⟩-nonzero d n)) 2₁
+ishift {D1 ⟨ d ⟨ n ⟩ ⟩} 0b₂    = (izero' (d⟨n⟩-nonzero d n)) 1₁
+ishift {D1 ⟨ d ⟨ n ⟩ ⟩} 1b₂    = (izero' (d⟨n⟩-nonzero d n)) 2₁
 ishift {D1 ⟨ d ⟨ n ⟩ ⟩} (i 2₂) = (ishift i) 1₁
 ishift {D1 ⟨ d ⟨ n ⟩ ⟩} (i 3₂) = (ishift i) 2₁
-ishift {D2 ⟨ n ⟩} 0b₁ = 1b₂
-ishift {D2 ⟨ n ⟩} (i 1₁) = i 2₂
-ishift {D2 ⟨ n ⟩} (i 2₁) = i 3₂
-ishift {D3 ⟨ n ⟩} 0b₂ = 1b₃
-ishift {D3 ⟨ n ⟩} 1b₂ = 2b₃
-ishift {D3 ⟨ n ⟩} (i 2₂) = i 3₃
-ishift {D3 ⟨ n ⟩} (i 3₂) = i 4₃
+ishift {D2 ⟨ n ⟩}      0b₁    = 1b₂
+ishift {D2 ⟨ n ⟩}      (i 1₁) = i 2₂
+ishift {D2 ⟨ n ⟩}      (i 2₁) = i 3₂
+ishift {D3 ⟨ n ⟩}      0b₂    = 1b₃
+ishift {D3 ⟨ n ⟩}      1b₂    = 2b₃
+ishift {D3 ⟨ n ⟩}      (i 2₂) = i 3₃
+ishift {D3 ⟨ n ⟩}      (i 3₂) = i 4₃
 
--- izero-correct : ∀ {n} → (nz : toN n ≢ 0) → toF (izero {n} nz) ≡ {!   !}
+izero-correct : ∀ {n} → toF (izero {n}) ≡ iz
+izero-correct {B0}      = refl
+izero-correct {D1 ⟨ n ⟩} = refl
+izero-correct {D2 ⟨ n ⟩} = refl
+izero-correct {D3 ⟨ n ⟩} = refl
 
 isucc-correct : ∀ {n} → (i : Idx n) → toF (isucc i) ≡ is (toF i)
 isucc-correct 0b₁ = refl
@@ -281,14 +271,12 @@ isucc-correct 1b₂ = refl
 isucc-correct (i 2₂) = refl
 isucc-correct (i 3₂) = refl
 isucc-correct 0b₃ = refl
-isucc-correct 1b₃ = cong is (cong is {!   !})
-isucc-correct 2b₃ = cong is (cong is {!   !})
+isucc-correct 1b₃ = cong is (cong is (cong _∙2+0 izero-correct))
+isucc-correct 2b₃ = cong is (cong is (cong _∙2+1 izero-correct))
 isucc-correct (i 3₃) = cong is (cong is (cong _∙2+0 (isucc-correct i)))
 isucc-correct (i 4₃) = cong is (cong is (cong _∙2+1 (isucc-correct i)))
 
--- ishift-correct : ∀ {n} → (i : Idx (dec n)) → toF (ishift i) ≡ {!   !} (toF i)
-
-lookup-izero : ∀ {A n} → (x : A) → (xs : RAL A n) → x ≡ lookup (cons x xs) (izero λ ())
+lookup-izero : ∀ {A n} → (x : A) → (xs : RAL A n) → x ≡ lookup (cons x xs) izero
 lookup-izero _ nil                       = refl
 lookup-izero _ (more (one x) xs)         = refl
 lookup-izero _ (more (two x x₁) xs)      = refl
@@ -309,12 +297,13 @@ lookup-isucc _ (more (three x x₁ x₂) xs) 2b₃    = cong proj₂ (lookup-ize
 lookup-isucc _ (more (three x x₁ x₂) xs) (i 3₃) = cong proj₁ (lookup-isucc (x₁ , x₂) xs i)
 lookup-isucc _ (more (three x x₁ x₂) xs) (i 4₃) = cong proj₂ (lookup-isucc (x₁ , x₂) xs i)
 
-lookup-head : ∀ {A n} → (xs : RAL A n) → (nz : toN n ≢ 0) → head xs nz ≡ lookup xs (izero nz)
+lookup-head : ∀ {A n} → (xs : RAL A n) → (nz : toN n ≢ 0) → head xs nz ≡ lookup xs (izero' nz)
 lookup-head nil                       nz = contradiction refl nz
 lookup-head (more (one x) xs)         nz = refl
 lookup-head (more (two x x₁) xs)      nz = refl
 lookup-head (more (three x x₁ x₂) xs) nz = refl
 
+-- lookup (tail xs) i ≡ lookup xs (ishift i)
 lookup-tail : ∀ {A n} → (xs : RAL A n) → (i : Idx (dec n)) → lookup (tail xs) i ≡ lookup xs (ishift i)
 lookup-tail (more (one x) (more s xs)) 0b₂ = cong proj₁ (lookup-head (more s xs) (more-nonzero (more s xs)))
 lookup-tail (more (one x) (more s xs)) 1b₂ = cong proj₂ (lookup-head (more s xs) (more-nonzero (more s xs)))
@@ -327,25 +316,3 @@ lookup-tail (more (three x x₁ x₂) xs) 0b₂ = refl
 lookup-tail (more (three x x₁ x₂) xs) 1b₂ = refl
 lookup-tail (more (three x x₁ x₂) xs) (i 2₂) = refl
 lookup-tail (more (three x x₁ x₂) xs) (i 3₂) = refl
-
-data List-View (A : Set) : RBinary → Set where
-    as-nil : List-View A B0
-    as-cons : ∀ {n : RBinary} → A → RAL A (dec n) → List-View A n
-
-lview : ∀ {A n} → RAL A n → List-View A n
-lview nil = as-nil
-lview (more (one x) nil) = as-cons x nil
-lview (more (one x) xs@(more _ _)) with lview xs
-... | as-cons (x₁ , x₂) xs' = as-cons x (more (two x₁ x₂) xs')
-lview (more (two x x₁) xs) = as-cons x (more (one x₁) xs)
-lview (more (three x x₁ x₂) xs) = as-cons x (more (two x₁ x₂) xs)
-
-head' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-head' xs nz with lview xs
-... | as-nil = contradiction refl nz
-... | as-cons x xs' = x
-
-tail' : ∀ {A n} → RAL A n → RAL A (dec n)
-tail' xs with lview xs
-... | as-nil = xs
-... | as-cons x xs' = xs'

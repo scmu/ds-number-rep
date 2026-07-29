@@ -30,15 +30,15 @@ data Binary : Set where
     B1   : Binary
     _⟨_⟩_ : Digit → Binary → Digit → Binary
 
-Dtoℕ : Digit → ℕ
-Dtoℕ D1 = 1
-Dtoℕ D2 = 2
-Dtoℕ D3 = 3
+DtoN : Digit → ℕ
+DtoN D1 = 1
+DtoN D2 = 2
+DtoN D3 = 3
 
-toℕ : Binary → ℕ
-toℕ B0           = 0
-toℕ B1           = 1
-toℕ (df ⟨ b ⟩ dr) = Dtoℕ df + 2* (toℕ b) + Dtoℕ dr
+toN : Binary → ℕ
+toN B0           = 0
+toN B1           = 1
+toN (df ⟨ b ⟩ dr) = DtoN df + 2* (toN b) + DtoN dr
 
 -- Increment from left
 incL : Binary → Binary
@@ -80,64 +80,55 @@ decR (D1 ⟨ B0 ⟩ D1)         = B1
 decR (D2 ⟨ B0 ⟩ D1)         = D1 ⟨ B0 ⟩ D1
 decR (D3 ⟨ B0 ⟩ D1)         = D2 ⟨ B0 ⟩ D1
 
-add : Binary → Binary → Binary
-add B0 m = m
-add B1 m = incL m
-add (D1 ⟨ n ⟩ nr) B0 = {!   !}
-add (D1 ⟨ n ⟩ nr) B1 = {!   !}
-add (D1 ⟨ n ⟩ nr) (x ⟨ m ⟩ x₁) = {!   !}
-add (D2 ⟨ n ⟩ nr) m = {!   !}
-add (D3 ⟨ n ⟩ nr) m = {!   !}
-
-fromℕ : ℕ → Binary
-fromℕ zero    = B0
-fromℕ (suc n) = incL (fromℕ n)
+fromN : ℕ → Binary
+fromN zero    = B0
+fromN (suc n) = incL (fromN n)
 
 -- Binary lemmas
 
-non-zero : ∀ {df b dr} → toℕ (df ⟨ b ⟩ dr) ≢ 0
+non-zero : ∀ {df b dr} → toN (df ⟨ b ⟩ dr) ≢ 0
 non-zero {D1} {b} {dr} ()
 non-zero {D2} {b} {dr} ()
 non-zero {D3} {b} {dr} ()
 
-incL-correct : ∀ b → toℕ (incL b) ≡ suc (toℕ b)
+incL-correct : ∀ b → toN (incL b) ≡ suc (toN b)
 incL-correct B0          = refl
 incL-correct B1          = refl
 incL-correct (D1 ⟨ b ⟩ d) = refl
 incL-correct (D2 ⟨ b ⟩ d) = refl
-incL-correct (D3 ⟨ b ⟩ d) = cong suc (cong suc (cong (λ x → x + (Dtoℕ d)) (cong 2* (incL-correct b))))
+incL-correct (D3 ⟨ b ⟩ d) = cong suc (cong suc (cong (λ x → x + (DtoN d)) (cong 2* (incL-correct b))))
 
-decL-correct : ∀ b → toℕ (decL b) ≡ pred (toℕ b)
+decL-correct : ∀ b → toN (decL b) ≡ pred (toN b)
 decL-correct B0                    = refl
 decL-correct B1                    = refl
 decL-correct (D1 ⟨ B0 ⟩ D1)        = refl
 decL-correct (D1 ⟨ B0 ⟩ D2)        = refl
 decL-correct (D1 ⟨ B0 ⟩ D3)        = refl
 decL-correct (D1 ⟨ B1 ⟩ d)         = refl
-decL-correct (D1 ⟨ df ⟨ b ⟩ dr ⟩ d) = trans (cong suc (cong suc (cong (λ x → x + (Dtoℕ d)) 
+decL-correct (D1 ⟨ df ⟨ b ⟩ dr ⟩ d) = trans (cong suc (cong suc (cong (λ x → x + (DtoN d)) 
                                            (cong 2* (decL-correct (df ⟨ b ⟩ dr)))))) 
-                                           (pred-suc-2n+ (toℕ (df ⟨ b ⟩ dr)) (Dtoℕ d) (non-zero {df} {b} {dr}))
+                                           (pred-suc-2n+ (toN (df ⟨ b ⟩ dr)) (DtoN d) (non-zero {df} {b} {dr}))
 decL-correct (D2 ⟨ b ⟩ d)          = refl
 decL-correct (D3 ⟨ b ⟩ d)          = refl
 
-toℕ-fromℕ : ∀ n → toℕ (fromℕ n) ≡ n
-toℕ-fromℕ zero    = refl
-toℕ-fromℕ (suc n) = trans (incL-correct (fromℕ n)) (cong suc (toℕ-fromℕ n))
+toN-fromN : ∀ n → toN (fromN n) ≡ n
+toN-fromN zero    = refl
+toN-fromN (suc n) = trans (incL-correct (fromN n)) (cong suc (toN-fromN n))
 
-zero-unique : ∀ x → toℕ x ≡ 0 → x ≡ B0
+zero-unique : ∀ x → toN x ≡ 0 → x ≡ B0
 zero-unique B0           eq = refl
 zero-unique B1           ()
 zero-unique (D1 ⟨ b ⟩ dr) ()
 zero-unique (D2 ⟨ b ⟩ dr) ()
 zero-unique (D3 ⟨ b ⟩ dr) ()
 
-redundant : ∃₂ λ x y → (x ≢ y) × (toℕ x ≡ toℕ y)
+redundant : ∃₂ λ x y → (x ≢ y) × (toN x ≡ toN y)
 redundant = (D2 ⟨ B0 ⟩ D1) , ((D1 ⟨ B0 ⟩ D2) , (λ ()) , refl)
 
 decL-incL≢id : ∃ λ b → b ≢ decL (incL b)
 decL-incL≢id = (D3 ⟨ B0 ⟩ D1) , (λ ())
 
-incL-gap : ∃ λ x → (toℕ x ≢ 0) × (∀ y → x ≢ incL y)
+incL-gap : ∃ λ x → (toN x ≢ 0) × (∀ y → x ≢ incL y)
 incL-gap = (D1 ⟨ B0 ⟩ D2) , ((λ ()) , helper)
   where
     helper : ∀ y → D1 ⟨ B0 ⟩ D2 ≢ incL y
@@ -167,14 +158,14 @@ snoc (more x₁ xs (one x₂))         x = more x₁ xs (two x₂ x)
 snoc (more x₁ xs (two x₂ x₃))      x = more x₁ xs (three x₂ x₃ x)
 snoc (more x₁ xs (three x₂ x₃ x₄)) x = more x₁ (snoc xs (x₂ , x₃)) (two x₄ x)
 
-last : ∀ {A b} → RAL A b → (toℕ b ≢ 0) → A
+last : ∀ {A b} → RAL A b → (toN b ≢ 0) → A
 last nil                          p = ⊥-elim (p refl)
 last (singleton x)                p = x
 last (more x xs (one x₁))         p = x₁
 last (more x xs (two x₁ x₂))      p = x₂
 last (more x xs (three x₁ x₂ x₃)) p = x₃
 
-more≢empty : ∀ {A df b dr} → RAL A (df ⟨ b ⟩ dr) → (toℕ (df ⟨ b ⟩ dr) ≢ 0)
+more≢empty : ∀ {A df b dr} → RAL A (df ⟨ b ⟩ dr) → (toN (df ⟨ b ⟩ dr) ≢ 0)
 more≢empty {_} {df} {b} {dr} _ p = contradiction (zero-unique (df ⟨ b ⟩ dr) p) λ ()
 
 init : ∀ {A b} → RAL A b → RAL A (decR b)

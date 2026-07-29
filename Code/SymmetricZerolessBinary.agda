@@ -1,4 +1,3 @@
-{-# OPTIONS --rewriting #-}
 module SymmetricZerolessBinary where
 
 open import Data.Nat using (ℕ; zero; suc; _+_; pred)
@@ -6,6 +5,8 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; ∃; ∃₂)
 open import Data.Fin using (Fin; opposite; inject₁; fromℕ) renaming (zero to iz; suc to is; pred to ip)
 open import Relation.Binary.PropositionalEquality
+import Data.Nat.Properties as NP
+open import Data.Nat.Tactic.RingSolver using (solve-∀)
 
 2* : ℕ → ℕ
 2* zero = 0
@@ -67,10 +68,78 @@ fromN : ℕ → SZBinary
 fromN zero = B0
 fromN (suc n) = incL (fromN n)
 
-mirror : SZBinary → SZBinary
-mirror B0 = B0
-mirror B1 = B1
-mirror (df ⟨ n ⟩ dr) = dr ⟨ (mirror n) ⟩ df
+addDL : Digit → SZBinary → SZBinary
+addDL D1 n = incL n
+addDL D2 n = incL (incL n)
+
+add : SZBinary → SZBinary → SZBinary
+add B0 m = m
+add n B0 = n
+add B1 m = incL m
+add n B1 = incR n
+add (dl ⟨ n ⟩ D1) (D1 ⟨ m ⟩ dr) = dl ⟨ addDL D1 (add n m) ⟩ dr
+add (dl ⟨ n ⟩ D2) (D2 ⟨ m ⟩ dr) = dl ⟨ addDL D2 (add n m) ⟩ dr
+add (dl ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D1) = dl ⟨ (addDL D1 (add n m)) ⟩ D2
+add (D1 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ dr) = D2 ⟨ (addDL D1 (add n m)) ⟩ dr
+add (D2 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D2) = D1 ⟨ (addDL D2 (add n m)) ⟩ D2
+add (D2 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D2) = D2 ⟨ (addDL D2 (add n m)) ⟩ D1
+add (D1 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D2) = D2 ⟨ (addDL D1 (add n m)) ⟩ D2
+add (D2 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D1) = D2 ⟨ (addDL D1 (add n m)) ⟩ D2
+
+data Carry : Set where
+    C0 : Carry
+    C1 : Carry
+    C2 : Carry
+    C3 : Carry
+    C4 : Carry
+
+CtoN : Carry → ℕ
+CtoN C0 = 0
+CtoN C1 = 1
+CtoN C2 = 2
+CtoN C3 = 3
+CtoN C4 = 4
+
+addCarryL : Carry → SZBinary → SZBinary
+addCarryL C0 n = n
+addCarryL C1 n = incL n
+addCarryL C2 n = incL (incL n)
+addCarryL C3 n = incL (incL (incL n))
+addCarryL C4 n = incL (incL (incL (incL n)))
+
+addCarryR : SZBinary → Carry → SZBinary
+addCarryR n C0 = n
+addCarryR n C1 = incR n
+addCarryR n C2 = incR (incR n)
+addCarryR n C3 = incR (incR (incR n))
+addCarryR n C4 = incR (incR (incR (incR n)))
+
+-- The three inner digits (rear of the left number, incoming carry, front of
+-- the right number) hold a total of t ∈ [4..12] units; repackage them into two
+-- outer digits and a carry of the same total value, one level deeper:
+--   DtoN dL + DtoN dR + 2 * CtoN c' ≡ t.
+fromTotal : ℕ → (Digit × Carry × Digit)
+fromTotal 4  = D1 , C1 , D1
+fromTotal 5  = D1 , C1 , D2
+fromTotal 6  = D1 , C2 , D1
+fromTotal 7  = D1 , C2 , D2
+fromTotal 8  = D1 , C3 , D1
+fromTotal 9  = D1 , C3 , D2
+fromTotal 10 = D1 , C4 , D1
+fromTotal 11 = D1 , C4 , D2
+fromTotal 12 = D2 , C4 , D2
+fromTotal _  = D1 , C0 , D1
+
+combine : Digit → Digit → Carry → Digit → Digit → (Digit × Carry × Digit)
+combine a b c d e = fromTotal (DtoN a + DtoN b + CtoN c + DtoN d + DtoN e)
+
+add3 : SZBinary → Carry → SZBinary → SZBinary
+add3 B0 c m = addCarryL c m
+add3 B1 c m = incL (addCarryL c m)
+add3 n c B0 = addCarryR n c
+add3 n c B1 = incR (addCarryR n c)
+add3 (a ⟨ n ⟩ b) c (d ⟨ m ⟩ e) with combine a b c d e
+... | dL , c' , dR = dL ⟨ (add3 n c' m) ⟩ dR
 
 szb-nonzero : ∀ n → (n ≢ B0) → toN n ≢ 0
 szb-nonzero B0 nz = ⊥-elim (nz refl)
@@ -107,8 +176,8 @@ decL-correct (D2 ⟨ n ⟩ d) = refl
 decR-correct : ∀ n → toN (decR n) ≡ pred (toN n)
 decR-correct B0 = refl
 decR-correct B1 = refl
-decR-correct (D1 ⟨ n ⟩ D2) = refl
-decR-correct (D2 ⟨ n ⟩ D2) = refl
+decR-correct (D1 ⟨ n ⟩ D2)  = refl
+decR-correct (D2 ⟨ n ⟩ D2)  = refl
 decR-correct (D1 ⟨ B0 ⟩ D1) = refl
 decR-correct (D2 ⟨ B0 ⟩ D1) = refl
 decR-correct (D1 ⟨ B1 ⟩ D1) = refl
@@ -122,13 +191,6 @@ toN-fromN (suc n) = trans (incL-correct (fromN n)) (cong suc (toN-fromN n))
 
 redundant : ∃₂ λ x y → (x ≢ y) × (toN x ≡ toN y )
 redundant = (D2 ⟨ B0 ⟩ D1) , ((D1 ⟨ B0 ⟩ D2) , ((λ ()) , refl))
-
-zero-unique : ∀ x → toN x ≡ 0 → x ≡ B0
-zero-unique B0 p = refl
-zero-unique (D1 ⟨ xs ⟩ D1) ()
-zero-unique (D1 ⟨ xs ⟩ D2) ()
-zero-unique (D2 ⟨ xs ⟩ D1) ()
-zero-unique (D2 ⟨ xs ⟩ D2) ()
 
 decL-borrow : ∀ n {d} → (n ≢ B0) → decL (D1 ⟨ n ⟩ d) ≡ (D2 ⟨ decL n ⟩ d)
 decL-borrow B0 nz = ⊥-elim (nz refl)
@@ -176,23 +238,106 @@ decR-incR≡id (D2 ⟨ B0 ⟩ D2) = refl
 decR-incR≡id (D2 ⟨ B1 ⟩ D2) = refl
 decR-incR≡id (D2 ⟨ n@(_ ⟨ _ ⟩ _) ⟩ D2) = trans (decR-borrow (incR n) (incR-nonzero n)) (cong (λ n → D2 ⟨ n ⟩ D2) (decR-incR≡id n))
 
-data Peano-View : SZBinary → Set where
-    as-zero : Peano-View B0
-    as-succ : ∀ {n} → (i : SZBinary) → (p : suc (toN i) ≡ toN n) → Peano-View n
+-- Helpers for add-correct.
 
-view : ∀ n → Peano-View n
-view B0 = as-zero
-view B1 = as-succ B0 refl
-view (df ⟨ n ⟩ dr) = as-succ (decL (df ⟨ n ⟩ dr)) (trans (cong suc (decL-correct (df ⟨ n ⟩ dr))) (suc-pred (toN (df ⟨ n ⟩ dr)) (szb-nonzero (df ⟨ n ⟩ dr) (λ ()))))
+2*-distrib : ∀ x y → 2* (x + y) ≡ 2* x + 2* y
+2*-distrib zero y    = refl
+2*-distrib (suc x) y = cong (λ z → suc (suc z)) (2*-distrib x y)
 
-VtoN : ∀ {n} → Peano-View n → ℕ
-VtoN as-zero = 0
-VtoN (as-succ n p) = suc (toN n)
+addDL-correct : ∀ d n → toN (addDL d n) ≡ DtoN d + toN n
+addDL-correct D1 n = incL-correct n
+addDL-correct D2 n = trans (incL-correct (incL n)) (cong suc (incL-correct n))
 
-view-correct : ∀ n → VtoN (view n) ≡ toN n
-view-correct B0 = refl
-view-correct B1 = refl
-view-correct (df ⟨ n ⟩ dr) = trans (cong suc (decL-correct (df ⟨ n ⟩ dr))) (suc-pred (toN (df ⟨ n ⟩ dr)) (szb-nonzero (df ⟨ n ⟩ dr) (λ ())))
+red1 : ∀ x y → 2* (1 + (x + y)) ≡ suc (suc (2* x + 2* y))
+red1 x y = cong (λ z → suc (suc z)) (2*-distrib x y)
+
+red2 : ∀ x y → 2* (2 + (x + y)) ≡ suc (suc (suc (suc (2* x + 2* y))))
+red2 x y = cong (λ z → suc (suc (suc (suc z)))) (2*-distrib x y)
+
+-- Pure additive rearrangements, closed by the ring solver.  In each, a and b
+-- stand for 2* (toN n) and 2* (toN m).
+slv1  : ∀ p q a b → p + q + (2 + (a + b)) ≡ (p + 1 + a) + (1 + q + b)
+slv1  = solve-∀
+slv2  : ∀ p q a b → p + q + (4 + (a + b)) ≡ (p + 2 + a) + (2 + q + b)
+slv2  = solve-∀
+slv3  : ∀ a b → 1 + 2 + (2 + (a + b)) ≡ (1 + 1 + a) + (2 + 1 + b)
+slv3  = solve-∀
+slv4  : ∀ a b → 2 + 2 + (2 + (a + b)) ≡ (1 + 1 + a) + (2 + 2 + b)
+slv4  = solve-∀
+slv5  : ∀ a b → 2 + 2 + (2 + (a + b)) ≡ (2 + 1 + a) + (2 + 1 + b)
+slv5  = solve-∀
+slv6  : ∀ a b → 1 + 2 + (4 + (a + b)) ≡ (2 + 1 + a) + (2 + 2 + b)
+slv6  = solve-∀
+slv7  : ∀ a b → 2 + 1 + (2 + (a + b)) ≡ (1 + 2 + a) + (1 + 1 + b)
+slv7  = solve-∀
+slv8  : ∀ a b → 2 + 2 + (2 + (a + b)) ≡ (1 + 2 + a) + (1 + 2 + b)
+slv8  = solve-∀
+slv9  : ∀ a b → 2 + 2 + (2 + (a + b)) ≡ (2 + 2 + a) + (1 + 1 + b)
+slv9  = solve-∀
+slv10 : ∀ a b → 2 + 1 + (4 + (a + b)) ≡ (2 + 2 + a) + (1 + 2 + b)
+slv10 = solve-∀
+
+add-correct : ∀ n m → toN (add n m) ≡ toN n + toN m
+add-correct B0 B0 = refl
+add-correct B0 B1 = refl
+add-correct B0 (df ⟨ m ⟩ dr) = refl
+add-correct B1 B0 = refl
+add-correct B1 B1 = refl
+add-correct B1 (df ⟨ m ⟩ dr) = incL-correct (df ⟨ m ⟩ dr)
+add-correct (df ⟨ n ⟩ dr) B0 = sym (NP.+-identityʳ (toN (df ⟨ n ⟩ dr)))
+add-correct (x ⟨ n ⟩ x₁) B1 =
+  trans (incR-correct (x ⟨ n ⟩ x₁)) (sym (NP.+-comm (toN (x ⟨ n ⟩ x₁)) 1))
+add-correct (dl ⟨ n ⟩ D1) (D1 ⟨ m ⟩ dr) =
+  trans (cong (λ z → DtoN dl + DtoN dr + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN dl + DtoN dr + z) (red1 (toN n) (toN m)))
+               (slv1 (DtoN dl) (DtoN dr) (2* (toN n)) (2* (toN m))))
+add-correct (dl ⟨ n ⟩ D2) (D2 ⟨ m ⟩ dr) =
+  trans (cong (λ z → DtoN dl + DtoN dr + 2* z)
+              (trans (addDL-correct D2 (add n m)) (cong (DtoN D2 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN dl + DtoN dr + z) (red2 (toN n) (toN m)))
+               (slv2 (DtoN dl) (DtoN dr) (2* (toN n)) (2* (toN m))))
+add-correct (D1 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D1) =
+  trans (cong (λ z → DtoN D1 + DtoN D2 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D1 + DtoN D2 + z) (red1 (toN n) (toN m)))
+               (slv3 (2* (toN n)) (2* (toN m))))
+add-correct (D1 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D2) =
+  trans (cong (λ z → DtoN D2 + DtoN D2 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D2 + z) (red1 (toN n) (toN m)))
+               (slv4 (2* (toN n)) (2* (toN m))))
+add-correct (D2 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D1) =
+  trans (cong (λ z → DtoN D2 + DtoN D2 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D2 + z) (red1 (toN n) (toN m)))
+               (slv5 (2* (toN n)) (2* (toN m))))
+add-correct (D2 ⟨ n ⟩ D1) (D2 ⟨ m ⟩ D2) =
+  trans (cong (λ z → DtoN D1 + DtoN D2 + 2* z)
+              (trans (addDL-correct D2 (add n m)) (cong (DtoN D2 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D1 + DtoN D2 + z) (red2 (toN n) (toN m)))
+               (slv6 (2* (toN n)) (2* (toN m))))
+add-correct (D1 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D1) =
+  trans (cong (λ z → DtoN D2 + DtoN D1 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D1 + z) (red1 (toN n) (toN m)))
+               (slv7 (2* (toN n)) (2* (toN m))))
+add-correct (D1 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D2) =
+  trans (cong (λ z → DtoN D2 + DtoN D2 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D2 + z) (red1 (toN n) (toN m)))
+               (slv8 (2* (toN n)) (2* (toN m))))
+add-correct (D2 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D1) =
+  trans (cong (λ z → DtoN D2 + DtoN D2 + 2* z)
+              (trans (addDL-correct D1 (add n m)) (cong (DtoN D1 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D2 + z) (red1 (toN n) (toN m)))
+               (slv9 (2* (toN n)) (2* (toN m))))
+add-correct (D2 ⟨ n ⟩ D2) (D1 ⟨ m ⟩ D2) =
+  trans (cong (λ z → DtoN D2 + DtoN D1 + 2* z)
+              (trans (addDL-correct D2 (add n m)) (cong (DtoN D2 +_) (add-correct n m))))
+        (trans (cong (λ z → DtoN D2 + DtoN D1 + z) (red2 (toN n) (toN m)))
+               (slv10 (2* (toN n)) (2* (toN m))))
+
 
 data Some (A : Set) : Digit → Set where
     one   : A →         Some A D1
@@ -204,15 +349,15 @@ data RAL (A : Set) : SZBinary → Set where
     more      : ∀ {df n dr} → Some A df → RAL (A × A) n → Some A dr → RAL A (df ⟨ n ⟩ dr)
 
 cons : ∀ {A n} → A → RAL A n → RAL A (incL n)
-cons x nil = singleton x
-cons x (singleton x₁) = more (one x) nil (one x₁)
-cons x (more (one x₁) xs s) = more (two x x₁) xs s
+cons x nil                     = singleton x
+cons x (singleton x₁)          = more (one x) nil (one x₁)
+cons x (more (one x₁) xs s)    = more (two x x₁) xs s
 cons x (more (two x₁ x₂) xs s) = more (one x) (cons (x₁ , x₂) xs) s
 
 snoc : ∀ {A n} → RAL A n → A → RAL A (incR n)
-snoc nil x = singleton x
-snoc (singleton x₁) x = more (one x₁) nil (one x)
-snoc (more s xs (one x₁)) x = more s xs (two x₁ x)
+snoc nil x                     = singleton x
+snoc (singleton x₁) x          = more (one x₁) nil (one x)
+snoc (more s xs (one x₁)) x    = more s xs (two x₁ x)
 snoc (more s xs (two x₁ x₂)) x = more s (snoc xs (x₁ , x₂)) (one x)
 
 more-nonzero : ∀ {A df n dr} → RAL A (df ⟨ n ⟩ dr) → (toN (df ⟨ n ⟩ dr) ≢ 0)
@@ -220,46 +365,38 @@ more-nonzero (more (one _)   _ _) = λ ()
 more-nonzero (more (two _ _) _ _) = λ ()
 
 head : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-head nil nz = ⊥-elim (nz refl)
-head (singleton x) nz = x
-head (more (one x) xs s) nz = x
+head nil nz                    = ⊥-elim (nz refl)
+head (singleton x) nz          = x
+head (more (one x) xs s) nz    = x
 head (more (two x x₁) xs s) nz = x
 
 last : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-last nil nz = ⊥-elim (nz refl)
-last (singleton x) nz = x
-last (more s xs (one x)) nz = x
+last nil nz                    = ⊥-elim (nz refl)
+last (singleton x) nz          = x
+last (more s xs (one x)) nz    = x
 last (more s xs (two x x₁)) nz = x₁
 
 tail : ∀ {A n} → RAL A n → RAL A (decL n)
-tail nil = nil
+tail nil           = nil
 tail (singleton x) = nil
-tail (more (one x) nil (one x₁)) = singleton x₁
-tail (more (one x) nil (two x₁ x₂)) = more (one x₁) nil (one x₂)
+tail (more (one x) nil (one x₁))            = singleton x₁
+tail (more (one x) nil (two x₁ x₂))         = more (one x₁) nil (one x₂)
 tail (more (one x) (singleton (x₁ , x₂)) s) = more (two x₁ x₂) nil s
 tail (more (one x) xs@(more _ _ _) s) =
     let (x₁ , x₂) = head xs (more-nonzero xs)
     in  more (two x₁ x₂) (tail xs) s
-tail (more (two x x₁) xs s) = more (one x₁) xs s
+tail (more (two x x₁) xs s)                 = more (one x₁) xs s
 
 init : ∀ {A n} → RAL A n → RAL A (decR n)
-init nil = nil
+init nil           = nil
 init (singleton x) = nil
-init (more s xs (two x x₁)) = more s xs (one x)
+init (more s xs (two x x₁))                 = more s xs (one x)
 init (more s (singleton (x , x₁)) (one x₂)) = more s nil (two x x₁)
 init (more s xs@(more _ _ _) (one x₂)) =
     let (x , x₁) = last xs (more-nonzero xs)
     in  more s (init xs) (two x x₁)
-init (more (one x) nil (one x₁)) = singleton x
-init (more (two x x₁) nil (one x₂)) = more (one x) nil (one x₁)
-
--- lookup xs izero ≡ lookup (reverse xs) ilast
-reverse : ∀ {A n} → RAL A n → RAL A (mirror n)
-reverse nil             = nil
-reverse (singleton x)   = singleton x
-reverse (more sf xs sr) = more sr (reverse xs) sf
-
--- Indices for Zeroless binary RAL
+init (more (one x) nil (one x₁))            = singleton x
+init (more (two x x₁) nil (one x₂))         = more (one x) nil (one x₁)
 
 _∙2+0 : ∀ {n} → Fin n → Fin (2* n)
 iz ∙2+0   = iz
@@ -269,15 +406,15 @@ _∙2+1 : ∀ {n} → Fin n → Fin (2* n)
 iz ∙2+1   = is iz
 is i ∙2+1 = is (is (i ∙2+1))
 
-data Max-View : ∀ {n} → Fin (suc n) → Set where
-    is-il : ∀ {n}             → Max-View {n} (fromℕ n)
-    is-ip : ∀ {n} (i : Fin n) → Max-View (inject₁ i)
+data LastView : ∀ {n} → Fin (suc n) → Set where
+    is-il : ∀ {n}             → LastView {n} (fromℕ n)
+    is-ij : ∀ {n} (i : Fin n) → LastView (inject₁ i)
 
-mview : ∀ {n} (i : Fin (suc n)) → Max-View i
-mview {zero}  iz     = is-il
-mview {suc n} iz     = is-ip iz
-mview {suc n} (is i) with mview i
-... | is-ip j = is-ip (is j)
+lview : ∀ {n} (i : Fin (suc n)) → LastView i
+lview {zero}  iz     = is-il
+lview {suc n} iz     = is-ij iz
+lview {suc n} (is i) with lview i
+... | is-ij j = is-ij (is j)
 ... | is-il   = is-il
 
 _/2 : ∀ {n} → Fin (2* n) → (Fin n × Fin 2)
@@ -290,8 +427,8 @@ data Idx : SZBinary → Set where
     0b₁     :                 Idx B1
     0f₁₁    : ∀ {n} →         Idx (D1 ⟨ n ⟩ D1)
     0r₁₁    : ∀ {n} →         Idx (D1 ⟨ n ⟩ D1)
-    ⟪1₁_2₁⟫ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩ D1)
-    ⟪2₁_1₁⟫ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩ D1)
+    ⟪1₁_2₁⟫ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩ D1) -- proj₁
+    ⟪2₁_1₁⟫ : ∀ {n} → Idx n → Idx (D1 ⟨ n ⟩ D1) -- proj₂
     0f₁₂    : ∀ {n} →         Idx (D1 ⟨ n ⟩ D2)
     0r₁₂    : ∀ {n} →         Idx (D1 ⟨ n ⟩ D2)
     1r₁₂    : ∀ {n} →         Idx (D1 ⟨ n ⟩ D2)
@@ -361,33 +498,33 @@ toF ⟪3₂ i 2₂⟫ = is (is (inject₁ (inject₁ ((toF i) ∙2+1))))
 fromF : ∀ {n} → Fin (toN n) → Idx n
 fromF {B1} iz = 0b₁
 fromF {D1 ⟨ n ⟩ D1} iz = 0f₁₁
-fromF {D1 ⟨ n ⟩ D1} (is i) with mview i
+fromF {D1 ⟨ n ⟩ D1} (is i) with lview i
 ... | is-il   = 0r₁₁
-... | is-ip j with j /2
+... | is-ij j with j /2
 ...     | q , iz    = ⟪1₁ fromF q 2₁⟫
 ...     | q , is iz = ⟪2₁ fromF q 1₁⟫
 fromF {D1 ⟨ n ⟩ D2} iz = 0f₁₂
-fromF {D1 ⟨ n ⟩ D2} (is i) with mview i
+fromF {D1 ⟨ n ⟩ D2} (is i) with lview i
 ... | is-il   = 0r₁₂
-... | is-ip j with mview j
+... | is-ij j with lview j
 ...     | is-il   = 1r₁₂
-...     | is-ip k with k /2
+...     | is-ij k with k /2
 ...         | q , iz    = ⟪1₁ fromF q 3₂⟫
 ...         | q , is iz = ⟪2₁ fromF q 2₂⟫
 fromF {D2 ⟨ n ⟩ D1} iz       = 0f₂₁
 fromF {D2 ⟨ n ⟩ D1} (is iz)  = 1f₂₁
-fromF {D2 ⟨ n ⟩ D1} (is (is i)) with mview i
+fromF {D2 ⟨ n ⟩ D1} (is (is i)) with lview i
 ... | is-il   = 0r₂₁
-... | is-ip j with j /2
+... | is-ij j with j /2
 ...     | q , iz    = ⟪2₂ fromF q 2₁⟫
 ...     | q , is iz = ⟪3₂ fromF q 1₁⟫
 fromF {D2 ⟨ n ⟩ D2} iz       = 0f₂₂
 fromF {D2 ⟨ n ⟩ D2} (is iz)  = 1f₂₂
-fromF {D2 ⟨ n ⟩ D2} (is (is i)) with mview i
+fromF {D2 ⟨ n ⟩ D2} (is (is i)) with lview i
 ... | is-il   = 0r₂₂
-... | is-ip j with mview j
+... | is-ij j with lview j
 ...     | is-il   = 1r₂₂
-...     | is-ip k with k /2
+...     | is-ij k with k /2
 ...         | q , iz    = ⟪2₂ fromF q 3₂⟫
 ...         | q , is iz = ⟪3₂ fromF q 2₂⟫
 
@@ -406,106 +543,32 @@ fromF {D2 ⟨ n ⟩ D2} (is (is i)) with mview i
 toF-fromF : ∀ {n} (i : Fin (toN n)) → toF {n} (fromF i) ≡ i
 toF-fromF {B1} iz = refl
 toF-fromF {D1 ⟨ n ⟩ D1} iz = refl
-toF-fromF {D1 ⟨ n ⟩ D1} (is i) with mview i
+toF-fromF {D1 ⟨ n ⟩ D1} (is i) with lview i
 ... | is-il = refl
-... | is-ip j with j /2 in eq
+... | is-ij j with j /2 in eq
 ...     | q , iz    = cong (λ i → is (inject₁ i)) (trans (cong _∙2+0 (toF-fromF {n} q)) (/2-inv-even j q eq))
 ...     | q , is iz = cong (λ i → is (inject₁ i)) (trans (cong _∙2+1 (toF-fromF {n} q)) (/2-inv-odd j q eq))
 toF-fromF {D1 ⟨ n ⟩ D2} iz = refl
-toF-fromF {D1 ⟨ n ⟩ D2} (is i) with mview i
+toF-fromF {D1 ⟨ n ⟩ D2} (is i) with lview i
 ... | is-il = refl
-... | is-ip j with mview j
+... | is-ij j with lview j
 ...     | is-il = refl
-...     | is-ip k with k /2 in eq
+...     | is-ij k with k /2 in eq
 ...         | q , iz    = cong (λ i → is (inject₁ (inject₁ i))) (trans (cong _∙2+0 (toF-fromF {n} q)) (/2-inv-even k q eq))
 ...         | q , is iz = cong (λ i → is (inject₁ (inject₁ i))) (trans (cong _∙2+1 (toF-fromF {n} q)) (/2-inv-odd k q eq))
 toF-fromF {D2 ⟨ n ⟩ D1} iz      = refl
 toF-fromF {D2 ⟨ n ⟩ D1} (is iz) = refl
-toF-fromF {D2 ⟨ n ⟩ D1} (is (is i)) with mview i
+toF-fromF {D2 ⟨ n ⟩ D1} (is (is i)) with lview i
 ... | is-il = refl
-... | is-ip j with j /2 in eq
+... | is-ij j with j /2 in eq
 ...     | q , iz    = cong (λ i → is (is (inject₁ i))) (trans (cong _∙2+0 (toF-fromF {n} q)) (/2-inv-even j q eq))
 ...     | q , is iz = cong (λ i → is (is (inject₁ i))) (trans (cong _∙2+1 (toF-fromF {n} q)) (/2-inv-odd j q eq))
 toF-fromF {D2 ⟨ n ⟩ D2} iz      = refl
 toF-fromF {D2 ⟨ n ⟩ D2} (is iz) = refl
-toF-fromF {D2 ⟨ n ⟩ D2} (is (is i)) with mview i
+toF-fromF {D2 ⟨ n ⟩ D2} (is (is i)) with lview i
 ... | is-il = refl
-... | is-ip j with mview j
+... | is-ij j with lview j
 ...     | is-il = refl
-...     | is-ip k with k /2 in eq
+...     | is-ij k with k /2 in eq
 ...         | q , iz    = cong (λ i → is (is (inject₁ (inject₁ i)))) (trans (cong _∙2+0 (toF-fromF {n} q)) (/2-inv-even k q eq))
 ...         | q , is iz = cong (λ i → is (is (inject₁ (inject₁ i)))) (trans (cong _∙2+1 (toF-fromF {n} q)) (/2-inv-odd k q eq))
-
-data List-View (A : Set) : SZBinary → Set where
-    as-nil  : List-View A B0
-    as-cons : ∀ {n : SZBinary} → A → RAL A (decL n) → List-View A n
-
-lview : ∀ {A n} → RAL A n → List-View A n
-lview nil = as-nil
-lview (singleton x) = as-cons x nil
-lview (more (one x) nil (one x₁)) = as-cons x (singleton x₁)
-lview (more (one x) nil (two x₁ x₂)) = as-cons x (more (one x₁) nil (one x₂))
-lview (more (one x) (singleton (x₁ , x₂)) s) = as-cons x (more (two x₁ x₂) nil s)
-lview (more (one x) xs@(more _ _ _) s) with lview xs
-... | as-cons (x₁ , x₂) xs' = as-cons x (more (two x₁ x₂) xs' s)
-lview (more (two x x₁) xs s) = as-cons x (more (one x₁) xs s)
-
-head' : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
-head' xs nz with lview xs
-... | as-nil        = ⊥-elim (nz refl)
-... | as-cons x xs' = x
-
-tail' : ∀ {A n} → RAL A n → RAL A (decL n)
-tail' xs with lview xs
-... | as-nil        = nil
-... | as-cons x xs' = xs'
-
-data DigitIdx' : Digit → Set where
-    0₁ : DigitIdx' D1
-    0₂ : DigitIdx' D2
-    1₂ : DigitIdx' D2
-
-data Idx' : SZBinary → Set where
-    0₁      : Idx' B1
-    _⇐     : ∀ {df n dr} → DigitIdx' df → Idx' (df ⟨ n ⟩ dr)
-    ⇒_     : ∀ {df n dr} → DigitIdx' dr → Idx' (df ⟨ n ⟩ dr)
-    ⟪1₁_2₁⟫ : ∀ {n} → Idx' n → Idx' (D1 ⟨ n ⟩ D1)
-    ⟪2₁_1₁⟫ : ∀ {n} → Idx' n → Idx' (D1 ⟨ n ⟩ D1)
-    ⟪1₁_3₂⟫ : ∀ {n} → Idx' n → Idx' (D1 ⟨ n ⟩ D2)
-    ⟪2₁_2₂⟫ : ∀ {n} → Idx' n → Idx' (D1 ⟨ n ⟩ D2)
-    ⟪2₂_2₁⟫ : ∀ {n} → Idx' n → Idx' (D2 ⟨ n ⟩ D1)
-    ⟪3₂_1₁⟫ : ∀ {n} → Idx' n → Idx' (D2 ⟨ n ⟩ D1)
-    ⟪2₂_3₂⟫ : ∀ {n} → Idx' n → Idx' (D2 ⟨ n ⟩ D2)
-    ⟪3₂_2₂⟫ : ∀ {n} → Idx' n → Idx' (D2 ⟨ n ⟩ D2)
-
-lookupSome : ∀ {A d} → Some A d → DigitIdx' d → A
-lookupSome (one x) 0₁ = x
-lookupSome (two x x₁) 0₂ = x
-lookupSome (two x x₁) 1₂ = x₁
-
-lookup' : ∀ {A n} → RAL A n → Idx' n → A
-lookup' nil ()
-lookup' (singleton x)   0₁ = x
-lookup' (more sf xs sr) (i ⇐) = lookupSome sf i
-lookup' (more sf xs sr) (⇒ i) = lookupSome sr i
-lookup' (more sf xs sr) ⟪1₁ i 2₁⟫ = proj₁ (lookup' xs i)
-lookup' (more sf xs sr) ⟪2₁ i 1₁⟫ = proj₂ (lookup' xs i)
-lookup' (more sf xs sr) ⟪1₁ i 3₂⟫ = proj₁ (lookup' xs i)
-lookup' (more sf xs sr) ⟪2₁ i 2₂⟫ = proj₂ (lookup' xs i)
-lookup' (more sf xs sr) ⟪2₂ i 2₁⟫ = proj₁ (lookup' xs i)
-lookup' (more sf xs sr) ⟪3₂ i 1₁⟫ = proj₂ (lookup' xs i)
-lookup' (more sf xs sr) ⟪2₂ i 3₂⟫ = proj₁ (lookup' xs i)
-lookup' (more sf xs sr) ⟪3₂ i 2₂⟫ = proj₂ (lookup' xs i)
-
-{-
-Idx' (D2 ⟨ D1 ⟨ n ⟩ D2 ⟩ D1)
-(0₂ ⇐)
-(1₂ ⇐)
-⟪2₂ (0₁ ⇐) 2₁⟫
-⟪3₂ (0₁ ⇐) 1₁⟫
-⟪2₂ (⇒ 1₂) 2₁⟫
-⟪3₂ (⇒ 1₂) 1₁⟫
-⟪2₂ (⇒ 0₂) 2₁⟫
-⟪3₂ (⇒ 0₂) 1₁⟫
-        (⇒ 0₁)
--}
