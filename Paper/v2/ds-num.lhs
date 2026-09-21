@@ -179,10 +179,10 @@ The corresponding case in |cons| makes the passing of values more explicit:
 \begin{spec}
 cons x (two y z ∷ xs) = one x ∷ cons (y{-"\!"-}, z) xs {-"~~,"-}
 \end{spec}
-one can see that leave |x| behind and carry |(y{-"\!\!"-}, z)| to the tail.
+one can see that we leave |x| behind and carry |(y{-"\!\!"-}, z)| to the tail.
 Decrement does the reverse: when decrementing |D1 ∷ n|, we borrow a $1$ from |n|, and the least significant digit becomes |D2|.
 
-Having |inc| and |dec|, the following is one of the ways to define addition of two |Binary|s:
+Having |inc| and |dec|, one of the ways to define addition of two |Binary|s is given below:
 \begin{spec}
 add : Binary -> Binary
 add B0  n = n
@@ -205,7 +205,10 @@ The same reasoning applies to |dec|.
 Meanwhile, the complexity of |add m n| is still $O(m)$ at best.
 One of the objectives of the rest of this article is to come up with an |add| having logarithmic time complexity.
 
-If we mix |inc| and |dec|, however, we lost the amortised $O(1)$ behaviour --- \todo{explain in one sentence}.
+If we mix |inc| and |dec|, however, we lost the amortised $O(1)$ behaviour.
+The function |inc| is the most costly when the input is a long sequence of |D2|'s, for which |inc| has to traverse to the end.
+The output for this case is a long sequence of |D1|'s, which is the most costly case for |dec|.
+In an unlucky scenario, |inc| and |dec| are alternately applied to their worst cases, with each operation taking logarithm time.
 
 \subsection{Redundant binary representation}
 \label{sec:redundant-binary}
@@ -243,8 +246,13 @@ In |dec|, we borrow a one from the tail in the case for |D1 ∷ n|:
 It is important that |inc| and |dec| recurse on different cases.
 If the last case of |inc (D3 ∷ n)| is invoked, which triggers a carry, turning a |D3| to |D2| and recurse on the tail, a subsequent |dec| merely decreases |D2| to |D1| without triggering a borrow.
 Symmetrically, after |dec (D1 ∷ n)|, which borrows from the tail and returns |D2 ∷ dec n|, a subsequent |inc| increases |D2| to |D3| without carrying.
-The extra room in the digit range $\{1, 2, 3\}$ thus acts as a buffer that prevents carries and borrows from cascading in alternation, ensuring that the amortised cost per operation remains $O(1)$ even when |inc| and |dec| are interleaved arbitrarily. \todo{do we need a serious analysis?}
+The extra room in the digit range $\{1, 2, 3\}$ thus acts as a buffer that prevents carries and borrows from cascading in alternation, ensuring that the amortised cost per operation remains $O(1)$ even when |inc| and |dec| are interleaved arbitrarily.
+%\todo{do we need a serious analysis?}
+% scm: perhaps not, considering the space and style.
 
+Another consequence of the redundancy in representation is that |inc| is no longer surjective (on positive numbers). \todo{Give an example.}
+
+\paragraph{The container type}
 Consider the container type induced by |Binary|.
 The |Some| type is extended with a case |three| that stores three elements:
 \begin{code}
@@ -263,12 +271,19 @@ When the least-significant digit is |D3|, two of the three stored elements are p
   cons x (three y z w  ∷ xs)  = two x y      ∷ cons (z , w) xs {-"~~."-}
 \end{code}
 
-\todo{rewrite the rest of this section}
-As discussed in the previous section, we cannot let |tail| have type |BList A (inc n) → RAL A n| if we want it to accept all non-empty lists.
-Instead we give it the type |BList A n → BList A (dec n)|, which makes its definition a direct translation of |dec|:
+\paragraph{Implementing |tail| and |head|}
+What type shall we assign to the function |tail|? There are two possibilities:
+\begin{spec}
+tail : ∀ {A n} → BList A (inc n) → BList A n {-"~~,"-}
+tail : ∀ {A n} → BList A n → BList A (dec n) {-"~~."-}
+\end{spec}
+The first type induces an implementation resembles |inc|.
+The problem is that it cannot be applied to all (non-empty) lists!
+As mentioned above, |inc| is not surjective on positive numbers, therefore this |tail| cannot be applied to, say, a list having type |BList A ?| \todo{fill in the number}.
+The second type results in a definition that is a direct translation of |dec|:
 %format ∷-nonzero = "::\!\mbox{-}\Varid{nonzero}"
 \begin{code}
-tail : ∀ {A n} → RAL A n → RAL A (dec n)
+tail : ∀ {A n} → BList A n → BList A (dec n)
 tail nil                   =  nil
 tail (one x ∷ nil)         =  nil
 tail (one x ∷ xs@(_ ∷ _))  =  let  (y , z) = head xs (∷-nonzero xs)
@@ -276,7 +291,8 @@ tail (one x ∷ xs@(_ ∷ _))  =  let  (y , z) = head xs (∷-nonzero xs)
 tail (two x y ∷ xs)        =  one y ∷ xs
 tail (three x y z ∷ xs)    =  two y z ∷ xs {-"~~."-}
 \end{code}
-It makes a call to |head|, which now takes a proof promising that the given list is not empty:
+In the third case of |dec| we borrow a bit from the tail, while in the corresponding case of |tail| we makes a call to |head| in order to extract one element from the tail |xs|.
+The function |head| takes a proof promising that the given list is not empty:
 \begin{code}
 head : ∀ {A n} → RAL A n → (toN n ≢ 0) → A
 head nil                  nz = contradiction refl nz
