@@ -7,6 +7,7 @@
 \begin{document}
 
 \author{Wen-Yuan Chan}
+\orcid{0009-0009-5816-9873}
 \affiliation{
   \institution{National Taiwan University}
   % \department{Computer Science and Information Engineering}
@@ -16,6 +17,7 @@
   % \postcode{115201}
 }
 \author{Shin-Cheng Mu}
+\orcid{0000-0002-4755-601X}
 \affiliation{
   \institution{Academia Sinica}
   % \department{Institute of Information Science}
@@ -26,7 +28,7 @@
 }
 
 
-\title{Finger Trees Have Fractional Sizes}
+\title{Finger trees have fractional sizes}
 
 \begin{abstract}
 Many container data structures bear close resemblance to some numerical representation of its size. Operations on these data structure can often be derived from corresponding operations on the numbers, and properties of the former can be established by reasoning about the latter.
