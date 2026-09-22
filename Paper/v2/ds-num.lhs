@@ -32,7 +32,7 @@
 
 \begin{abstract}
 Many container data structures bear close resemblance to some numerical representation of its size. Operations on these data structure can often be derived from corresponding operations on the numbers, and properties of the former can be established by reasoning about the latter.
-We present some recipes for designing numerical representations and deriving  corresponding sequence-like data structures that efficiently support operations including adding and removing elements from both ends, indexing, and sequence concatenation.
+We present some recipes for designing numerical representations and deriving corresponding sequence-like data structures that efficiently support operations including adding and removing elements from both ends, indexing, and sequence concatenation.
 It turns out that Finger Trees, a versatile data structure for sequences, can be understood as a representation of binary number whose digits are allowed to be fractional.
 \end{abstract}
 
@@ -223,7 +223,6 @@ A consequence is that the representation of a number is no longer unique.
 For example, both |D3 ∷ D1 ∷ []| and |D1 ∷ D2 ∷ []| denote |5|.
 We will soon see that such redundancy turns out to be beneficial efficiency-wise.
 
-
 In |inc|, a carry propagates to the tail in the case for |D3 ∷ n|, in which the least-significant digit |D3| resets to |D2|.
 In |dec|, we borrow a one from the tail in the case for |D1 ∷ n|:
 \begin{minipage}[t]{0.45\textwidth}
@@ -359,10 +358,10 @@ incR (d ⟨ b ⟩ D3)  = d ⟨ incR b ⟩ D2 {-"~~."-}
 \end{spec}
 \end{minipage}\\
 Carrying is invoked when the digit at the end is |D3|.
-Applying |incL| to |D3 ⟨ D3 ⟨ B1 ⟩ D1 ⟩ D1|, a ``left-saturated'' representation of |16|, for example,
+Applying |incL| to |D3 ⟨ D3 ⟨ B1 ⟩ D1 ⟩ D1|, a ``left-saturated'' representation of $16$, for example,
 results in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1|.
-Observe that carrying does not propagate to the right half of the number.
-Instead, |incL| reaches the middle of the number and go ``deeper'' by turning a |B1| into a |D1 ⟨ B0 ⟩ D1|.
+Observe that |incL| does not propagate carry to the right half of the number.
+Instead, it reaches the middle of the number and go ``deeper'' by turning a |B1| into a |D1 ⟨ B0 ⟩ D1|.
 Meanwhile, decrement is defined by (we show the righthand side variant):
 \begin{spec}
 decR : SBinary → SBinary
@@ -382,7 +381,7 @@ Performing |decR (D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1)|, for example,
 yields |D2 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D2| --- we initiate borrowing from the right, and stops when |D1 ⟨ B0 ⟩ D1| in the middle reduces to |B1|.
 Applying |incR| to the result yields |D2 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D3|.
 
-One can imagine how we may support |head| in $O(1)$ , and |cons|, |tail|, |snoc|, |init| in worst-case $O(\log n)$ and amortised $O(1)$ time.
+One can imagine how we may support |head| in $O(1)$ time, and |cons|, |tail|, |snoc|, |init| in worst-case $O(\log n)$ and amortised $O(1)$ time.
 
 What about |add| and |append|?
 Let |m =| |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1| (decimal $17$) and |n =| |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1| (decimal $7$), consider computing |add m n|.
@@ -403,22 +402,38 @@ Which brings us to how the Finger Tree dealt with the problem.
 
 What if we allow mixed fractions in digits?
 
-In decimal representation, for example, the digits are integers in $\{0..9\}$, and $987$ denotes $9 \times 10^2 + 8 \times 10 + 7$.
-In a decimal number $d_2 d_1 d_0$, the value contained by the $d_2 d_1$ part is always a multiple of $10$.
+In decimal representation, the digits are integers in $\{0..9\}$, and $987$, for example, denotes $9 \times 10^2 + 8 \times 10 + 7$.
+In a decimal number $d_2 d_1 d_0$, the value contained by the $d_2 d_1$ part is always a multiple of $10$,
+just like in $(d ⟨ b ⟩ c)$ in Section~{sec:sym-binary}, the value contained in |b| is always a multiple of $2$.
 But if we allow a mixed faction, say $8\frac{3}{10}$, to be a digit, the same number $987$ could be written $9\,8\frac{3}{10}\,4$, denoting $9 \times 10^2 + 8\frac{3}{10} \times 10 + 4$ --- the two most significant digits now represent $983$!
 Pushing it a bit further, $9\frac{21}{100}\, 6\frac{3}{10}\,3$ is yet another representation of $987$.
 
-Our view is that Finger Trees arise from allowing mixed fractional digits in a zeroless, redundant representation of binary numbers.
+Note that we still want every prefix of a number to represent a whole integer.
+Therefore, the most significat digit in $9\frac{21}{100}\, 6\frac{3}{10}\,3$ may have $100$ as its denominator, while the second digit may only use $10$ and not $100$.
+
+Our view is that \emph{Finger Trees arise
+from symmetrical, redundant, zeroless binary numbers with mixed fractional digits}.
 Consider again |m = | $17 =$  |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1|.
 Let |k = D2 ⟨ B0 ⟩ D1| (decimal $3$).
 The result of |add m k| could be
 \begin{spec}
-   D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1 {-"~~."-}
+   D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1 {-"~~,"-}
 \end{spec}
+which represents $20$.
+The leftmost |D2| and the rightmost |D1| are respectively inherited from |m| and |k|,
+while |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-}| in the middle represents $17$.
+The digit |D2{-"\!\frac{1}{2}"-}| appears in the second level and is therefore allowed to have $2$ in the denominator.
 Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
 \begin{spec}
- D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~."-}
+ D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~,"-}
 \end{spec}
+which reprsents $24$.
+The two |D2|'s on the lefthand side are from |n|, while the two |D1|'s from the righthand side are from |m|.
+With such reuse, one may imagine the possibilty of a by-digit implementation of |add| that traverses through the structures of |m| and |n|.
+The |D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-}| in the middle represents $(1 + 2(\frac{1}{4}+\frac{1}{2}))\times 2^2 = 15$.
+The digit |D2{-"(\frac{1}{4}+\frac{1}{2})"-}| appears in the third level, and is allowed to have up to $4$ in the denominator.
+
+These ideas will be made precise in the next few sections.
 
 \subsection{Fractional digits}
 
