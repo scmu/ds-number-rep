@@ -334,7 +334,12 @@ toN B1             = 1
 toN (df ⟨ n ⟩ dr)  = ⟦ df ⟧ + 2 * toN n + ⟦ dr ⟧ {-"~~,"-}
 \end{spec}
 where |⟦_⟧| converts a |Digit| to a |ℕ|, e.g. |⟦ D2 ⟧ = 2|.
-For example, both |D3 ⟨ D3 ⟨ B1 ⟩ D1 ⟩ D1| and |D3 ⟨ D3 ⟨ B0 ⟩ D2 ⟩ D3| represent |16|.
+We will refer to positions of digits in an |SBinary| as their \emph{depths}, starting from $0$.
+In |D3 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D1|, for example, the outer |D3| and |D1| have depth $0$,
+while the inner |D2|'s have depth $1$. Digits at depth |i| have weight $2^i$,
+therefore |D3 ⟨ D2 ⟨ B1 ⟩ D2 ⟩ D1| denotes
+$3 + 2\times2^1 + 1\times2^2 + 2\times2^1 + 1 = 16$.
+This representation is redundant: |D3 ⟨ D3 ⟨ B0 ⟩ D2 ⟩ D3| also represents |16|.
 
 Increment can be performed to the left or the right of an |SBinary|, defined symmetrically:\\
 \begin{minipage}[t]{0.45\textwidth}
@@ -394,9 +399,9 @@ An ideal \emph{digit-by-digit} algorithm might extract the two outermost digits 
 where the leading |D2| in the result is the leftmost digit of $17$, the rear |D1| is the rightmost digit of $7$, and $15$ and $6$ are respectively $17$ and $7$ with their leftmost/rightmost digits removed.
 But $15 + 6$ is an odd number, and in our representation there is no way we can store an odd number in the middle part of an |SBinary|.
 One might try borrowing a |1| from |m| or |n|, which will result in mass re-structuring of the number and would not be efficient.
-And this problem cannot be solved by adding more digits --- with more digits we still cannot store an odd number in the middle of |SBinary|.
+And this problem cannot be solved by adding more digits --- the middle of |SBinary|, beyond depth $1$, still has to be an even number.
 
-Which brings us to how the Finger Tree dealt with the problem.
+Which brings us to how Finger Tree dealt with the problem.
 
 \section{Fractional digits}
 
@@ -404,7 +409,7 @@ What if we allow mixed fractions in digits?
 
 In decimal representation, the digits are integers in $\{0..9\}$, and $987$, for example, denotes $9 \times 10^2 + 8 \times 10 + 7$.
 In a decimal number $d_2 d_1 d_0$, the value contained by the $d_2 d_1$ part is always a multiple of $10$,
-just like in $(d ⟨ b ⟩ c)$ in Section~{sec:sym-binary}, the value contained in |b| is always a multiple of $2$.
+just like in |d ⟨ b ⟩ c| in Section~\ref{sec:sym-binary} where the value contained in |b| is always a multiple of $2$.
 But if we allow a mixed faction, say $8\frac{3}{10}$, to be a digit, the same number $987$ could be written $9\,8\frac{3}{10}\,4$, denoting $9 \times 10^2 + 8\frac{3}{10} \times 10 + 4$ --- the two most significant digits now represent $983$!
 Pushing it a bit further, $9\frac{21}{100}\, 6\frac{3}{10}\,3$ is yet another representation of $987$.
 
@@ -422,16 +427,20 @@ The result of |add m k| could be
 which represents $20$.
 The leftmost |D2| and the rightmost |D1| are respectively inherited from |m| and |k|,
 while |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-}| in the middle represents $17$.
-The digit |D2{-"\!\frac{1}{2}"-}| appears in the second level and is therefore allowed to have $2$ in the denominator.
 Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
 \begin{spec}
- D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~,"-}
+ D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!(\frac{1}{4}\!+\!\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~,"-}
 \end{spec}
 which reprsents $24$.
-The two |D2|'s on the lefthand side are from |n|, while the two |D1|'s from the righthand side are from |m|.
-With such reuse, one may imagine the possibilty of a by-digit implementation of |add| that traverses through the structures of |m| and |n|.
-The |D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}+\frac{1}{2})"-}| in the middle represents $(1 + 2(\frac{1}{4}+\frac{1}{2}))\times 2^2 = 15$.
-The digit |D2{-"(\frac{1}{4}+\frac{1}{2})"-}| appears in the third level, and is allowed to have up to $4$ in the denominator.
+The two |D2|'s on the lefthand side are taken from |n|, while the two |D1|'s from the righthand side are from |m|.
+One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n|.
+The |D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}\!+\!\frac{1}{2})"-}| in the middle represents $(1 + 2(\frac{1}{4}+\frac{1}{2}))\times 2^2 = 15$.
+
+Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole integer.
+In |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1|,
+the digit |D2{-"\!\frac{1}{2}"-}| has depth $1$ and is therefore allowed to have $2^1$ in the denominator;
+in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!(\frac{1}{4}\!+\!\frac{1}{2})"-} ⟩ D1 ⟩ D1|
+the digit |D2{-"(\frac{1}{4}\!+\!\frac{1}{2})"-}| has depth $2$, and is allowed to have up to $2^2 = 4$ in the denominator.
 
 These ideas will be made precise in the next few sections.
 
