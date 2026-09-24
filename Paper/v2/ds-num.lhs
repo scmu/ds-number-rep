@@ -429,93 +429,93 @@ The leftmost |D2| and the rightmost |D1| are respectively inherited from |m| and
 while |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-}| in the middle represents $17$.
 Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
 \begin{spec}
- D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!(\frac{1}{4}\!+\!\frac{1}{2})"-} ⟩ D1 ⟩ D1 {-"~~,"-}
+ D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-} ⟩ D1 ⟩ D1 {-"~~,"-}
 \end{spec}
 which reprsents $24$.
 The two |D2|'s on the lefthand side are taken from |n|, while the two |D1|'s from the righthand side are from |m|.
 One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n|.
-The |D1 ⟨ B0 ⟩ D2{-"(\frac{1}{4}\!+\!\frac{1}{2})"-}| in the middle represents $(1 + 2(\frac{1}{4}+\frac{1}{2}))\times 2^2 = 15$.
+The |D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-}| in the middle represents $(1 + 2\frac{3}{4})\times 2^2 = 15$.
 
 Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole integer.
 In |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1|,
 the digit |D2{-"\!\frac{1}{2}"-}| has depth $1$ and is therefore allowed to have $2^1$ in the denominator;
 in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!(\frac{1}{4}\!+\!\frac{1}{2})"-} ⟩ D1 ⟩ D1|
-the digit |D2{-"(\frac{1}{4}\!+\!\frac{1}{2})"-}| has depth $2$, and is allowed to have up to $2^2 = 4$ in the denominator.
+the digit |D2{-"\!\frac{1}{4}"-}| has depth $2$, and is allowed to have $2^2 = 4$ in the denominator.
 
 These ideas will be made precise in the next few sections.
 
 \subsection{Fractional digits}
 
-What is a fractional digit?
-The intuition above suggests that a digit should be allowed to carry a value that, while not an integer on its own, contributes an integer when multiplied by its positional weight.
-In a symmetric binary number, the digits surrounding the middle at depth |n| have weight $2^n$.
-We therefore let a digit at depth |n| carry a \emph{fraction} whose denominator is $2^n$:
+How shall we represent a fractional digit?
+The following datatype |Sesq| represents a ``one'' possibly trailed by a fraction number.
+\footnote{We loosely adapt the Latin prefix \emph{sesqui}, standing for ``one and a half''.}
+The type |Sesq n| is a non-empty tree whose internal nodes may have two or three children, and every leaf, |one|, sits at the same depth |n|.
 \begin{code}
-  data Frac : ℕ → Set where
-    one        : Frac 0
-    [_+_]/2    : ∀ {n} → Frac n → Frac n → Frac (suc n)
-    [_+_+_]/2  : ∀ {n} → Frac n → Frac n → Frac n → Frac (suc n) {-"~~."-}
+  data Sesq : ℕ → Set where
+    one        : Sesq 0
+    [_+_]/2    : ∀ {n} → Sesq n → Sesq n → Sesq (suc n)
+    [_+_+_]/2  : ∀ {n} → Sesq n → Sesq n → Sesq n → Sesq (suc n) {-"~~."-}
 \end{code}
-A |Frac n| is a non-empty tree whose internal nodes have two or three children and whose every leaf sits at depth |n|.
-The constructors record how a fraction is built: |one| is the whole $1$, while |[ f + g ]/2| and |[ f + g + h ]/2| average the (equal-depth) fractions they contain, halving the denominator's exponent by one at each level.
-Counting the leaves gives the numerator:
+The intention is that |Sesq n| is a mixed fraction that may appear at depth |n| in a symmetric binary number.
+The value |one| is the only ``one'' allowed at depth $0$ --- no fractions allowed.
+At depth |1|, we may have |[ one + one ]/2|, which corresponds to a digit $1$ in binary representation.
+It corresponds to the fact that each time we descend a level in binary representation, the value contained is doubled.
+It is the third constructor that is new:
+we may also have |[ one + one + one ]/2| at depth $1$, which represents $\frac{3}{2} = 1\frac{1}{2}$.
+
+More generally, the function |sizeS| counts the number of |one|'s in a tree:
 \begin{code}
-  sizeF : ∀ {n} → Frac n → ℕ
-  sizeF one              = 1
-  sizeF [ f + g ]/2      = sizeF f + sizeF g
-  sizeF [ f + g + h ]/2  = sizeF f + (sizeF g + sizeF h) {-"~~."-}
+  sizeS : ∀ {n} → Sesq n → ℕ
+  sizeS one              = 1
+  sizeS [ f + g ]/2      = sizeS f + sizeS g
+  sizeS [ f + g + h ]/2  = sizeS f + (sizeS g + sizeS h) {-"~~."-}
 \end{code}
-A fraction |f : Frac n| denotes the dyadic rational $\mathit{sizeF}\;f / 2^{n}$.
-For example, |one : Frac 0| denotes $1/2^0 = 1$; |[ one + one ]/2 : Frac 1| denotes $2/2^1 = 1$; and |[ one + one + one ]/2 : Frac 1| denotes $3/2^1 = 1\frac12$ --- a genuinely fractional digit.
-At depth |n|, where the positional weight is $2^n$, such a digit contributes exactly $\mathit{sizeF}\;f$ to the represented number.
+A tree |f| having type |Sesq n| thus denotes the dyadic rational |sizeS f / {-"2^n"-}|.
 
 \subsection{The symmetric fractional binary}
 
-We now decorate each digit of the symmetric, zeroless, redundant representation of Section~\ref{sec:redundant-binary} with a fraction of the appropriate depth\todo{elaborate on Digit}:
+Each of the digits |D1|, |D2|, and |D3| is indexed by the depth where it may appear, and represented by the corresponding number of |Sesq|s:
 \begin{code}
   data Digit : ℕ → Set where
-    D1 : ∀ {n} → Frac n                    → Digit n
-    D2 : ∀ {n} → Frac n → Frac n           → Digit n
-    D3 : ∀ {n} → Frac n → Frac n → Frac n  → Digit n {-"~~,"-}
+    D1 : ∀ {n} → Sesq n                    → Digit n
+    D2 : ∀ {n} → Sesq n → Sesq n           → Digit n
+    D3 : ∀ {n} → Sesq n → Sesq n → Sesq n  → Digit n {-"~~,"-}
   data Binary : ℕ → Set where
     B0     : ∀ {n} → Binary n
-    B1     : ∀ {n} → Frac n → Binary n
+    B1     : ∀ {n} → Sesq n → Binary n
     _⟨_⟩_  : ∀ {n} → Digit n → Binary (suc n) → Digit n → Binary n {-"~~."-}
 \end{code}
-The depth index increases by one as we descend towards the middle, mirroring the doubling of weights.
-A number is a |Binary 0|.
+The depth |n| increments as we descend towards the middle.
+A whole number is a |Binary 0|.
 Its value is obtained by summing the fractional contributions:
 \begin{code}
   sizeB : ∀ {n} → Binary n → ℕ
   sizeB B0            = 0
-  sizeB (B1 f)        = sizeF f
+  sizeB (B1 f)        = sizeS f
   sizeB (df ⟨ b ⟩ dr) = sizeD df + (sizeB b + sizeD dr) {-"~~,"-}
 
   toN : Binary 0 → ℕ
   toN = sizeB {-"~~,"-}
 \end{code}
-where |sizeD| sums the fractions of a digit.
-Adding an element amounts to carrying a fraction inward.
-More generally than incrementing, |addFL| adds an arbitrary fraction |f| at the left end:
-\begin{code}
-  addFL : ∀ {n} → Frac n → Binary n → Binary n
-  addFL f B0                  = B1 f
-  addFL f (B1 g)              = D1 f ⟨ B0 ⟩ D1 g
-  addFL f (D1 g ⟨ b ⟩ dr)     = D2 f g ⟨ b ⟩ dr
-  addFL f (D2 g h ⟨ b ⟩ dr)   = D3 f g h ⟨ b ⟩ dr
-  addFL f (D3 g h i ⟨ b ⟩ dr) = D2 f g ⟨ addFL [ h + i ]/2 b ⟩ dr {-"~~."-}
-\end{code}
-The last case is the crucial part.
-When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into the single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |addFL|.
-Adding a fraction at the right end, |addFR|, is defined symmetrically.
-The ordinary increments are now simply the addition of the whole unit |one| at either end:
+where |sizeD| sums up the fractions of a digit.
+
+The function |incL|, which increments a number by $1$ to the lefthand side,
+is now a special case of |addSL|, which adds a |Sesq| to a number at the left end:
 \begin{code}
   incL : Binary 0 → Binary 0
-  incL b = addFL one b {-"~~,"-}
+  incL b = addSL one b {-"~~,"-}
 
-  incR : Binary 0 → Binary 0
-  incR b = addFR one b {-"~~."-}
+  addSL : ∀ {n} → Sesq n → Binary n → Binary n
+  addSL f B0                   = B1 f
+  addSL f (B1 g)               = D1 f ⟨ B0 ⟩ D1 g
+  addSL f (D1 g ⟨ b ⟩ dr)      = D2 f g ⟨ b ⟩ dr
+  addSL f (D2 g h ⟨ b ⟩ dr)    = D3 f g h ⟨ b ⟩ dr
+  addSL f (D3 g h i ⟨ b ⟩ dr)  = D2 f g ⟨ addSL [ h + i ]/2 b ⟩ dr {-"~~."-}
 \end{code}
+The last case of |addSL| is the crucial one.
+When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into the single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |addSL|.
+Adding a |Sesq| at the right end, |addSR|, is defined symmetrically.
+
 Decrement is subtler, because a leading |D1| has nothing to spare. To borrow, we must reach inward and split a next-depth fraction back into two --- the exact mirror of the |D3| carry in |addFL|.
 Removing an element from the left is |decL|:
 \begin{code}
@@ -529,16 +529,16 @@ Removing an element from the left is |decL|:
   decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ b ⟩ dr') ⟩ dr) = D2 g h ⟨ decL m ⟩ dr {-"~~,"-}
 \end{code}
 with the remaining cases analogous; the right-end |decR| is symmetric and omitted.
-These operations respect the semantics at every depth: |addFL f| adds a whole tree of |sizeF f| elements, and |decL| removes the leftmost such tree.
+These operations respect the semantics at every depth: |addSL f| adds a whole tree of |sizeS f| elements, and |decL| removes the leftmost such tree.
 \begin{code}
-  addFL-correct : ∀ {n} (f : Frac n) (b : Binary n)
-                → sizeB (addFL f b) ≡ sizeF f + sizeB b {-"~~."-}
+  addSL-correct : ∀ {n} (f : Sesq n) (b : Binary n)
+                → sizeB (addSL f b) ≡ sizeS f + sizeB b {-"~~."-}
 \end{code}
 The genuine increment and decrement are the special case at depth |0|, where |one| --- and hence the leftmost tree --- is a single leaf of size |1|.
 They therefore change the element count by exactly one:
 \begin{code}
-  incL-correct : ∀ (b : Binary 0) → toN (incL b) ≡ suc (toN b) {-"~~,"-}
-  decL-correct : ∀ (b : Binary 0) → toN (decL b) ≡ pred (toN b) {-"~~."-}
+  incL-correct  : ∀ (b : Binary 0) → toN (incL b)  ≡ suc (toN b) {-"~~,"-}
+  decL-correct  : ∀ (b : Binary 0) → toN (decL b)  ≡ pred (toN b) {-"~~."-}
 \end{code}
 
 \subsection{Addition}
