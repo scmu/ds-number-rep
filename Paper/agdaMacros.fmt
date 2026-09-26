@@ -151,6 +151,8 @@
 %format λ = "\lambda"
 %format ℕ = "\mathbb{N}"
 
+%format ∸ = "\mathbin{\dotminus}"
+
 %format D0 = "\mathbf{0}"
 %format D1 = "\mathbf{1}"
 %format D2 = "\mathbf{2}"
@@ -213,4 +215,3 @@
 %format _halfF = "\anonymous\mathbin{/2}"
 %format toF = "\Varid{to}\Conid{F}"
 %format fromF = "\Varid{from}\Conid{F}"
-
