@@ -119,20 +119,21 @@ While |addSL f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| fr
   decL (D3 f g h ⟨ b ⟩ dr)           = D2 g h ⟨ b ⟩ dr
   decL (D1 f ⟨ B0 ⟩ D1 g)            = B1 g
   decL (D1 f ⟨ B1 [ g + h ]/2 ⟩ dr)  = D2 g h ⟨ B0 ⟩ dr
-  decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ _ ⟩ _) ⟩ dr) = D2 g h ⟨ decL m ⟩ dr {-"~~..."-}
+  decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ _ ⟩ _) ⟩ dr) = D2 g h ⟨ decL m ⟩ dr
+  {-"\mbox{... similar cases omitted.}"-}
 \end{code}
-(we omit the rest of the cases that are similar),
 The cases for |B0|, |B1|, |D2|, and |D3| are relatively easy.
-The more interesting cases are those where the leftmost digit is |D1|, where we have to borrow from the inside and split the next digit we encounter.
+The more interesting cases are those where the leftmost digit is |D1|, where we have to borrow from the inside and, when necessary, split the next digit we encounter.
 
-These operations respect the semantics at every depth: |addSL f| adds a whole tree of |sizeS f| elements, and |decL| removes the leftmost such tree.
+It can be proved that |addSL f b| does increase the value of |b| by |sizeS f|,
+and |decL b| decreases |b| by |leadSize b|, size of the leftmost |Sesq| of |b|:
 \begin{code}
   addSL-correct : ∀ {n} (f : Sesq n) (b : Binary n)
-                → sizeB (addSL f b) ≡ sizeS f + sizeB b {-"~~,"-}
-  decL-general : ∀ {n} (b : Binary n) → sizeB (decL b) ≡ sizeB b ∸ leadSize b {-"~~,"-}
+      → sizeB (addSL f b) ≡ sizeS f + sizeB b {-"~~,"-}
+  decL-general : ∀ {n} (b : Binary n)
+      → sizeB (decL b) ≡ sizeB b ∸ leadSize b {-"~~,"-}
 \end{code}
-The genuine increment and decrement are the special case at depth |0|, where |one| --- and hence the leftmost tree --- is a single leaf of size |1|.
-They therefore change the element count by exactly one:
+therefore, |incL| does perform increment, while |decL| decrements a number when it is a |Binary 0|, whose leftmost |Sesq| must be a |one|:
 \begin{code}
   incL-correct  : ∀ (b : Binary 0) → toN (incL b)  ≡ suc (toN b) {-"~~,"-}
   decL-correct  : ∀ (b : Binary 0) → toN (decL b)  ≡ pred (toN b) {-"~~."-}
