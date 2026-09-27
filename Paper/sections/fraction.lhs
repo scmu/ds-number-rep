@@ -227,15 +227,15 @@ These are precisely the internal $2$-$3$ nodes of a Finger Tree.
 The types |Some| and |FingerTree| are respectively induced by |Digit| and |Binary|:
 \begin{code}
   data Some (A : Set) (n : ℕ) : Digit n → Set where
-    one    : ∀ {f}     → Tree A n f                             → Some A n (D1 f)
-    two    : ∀ {f g}   → Tree A n f → Tree A n g                → Some A n (D2 f g)
-    three  : ∀ {f g h} → Tree A n f → Tree A n g → Tree A n h   → Some A n (D3 f g h) {-"~~,"-}
+   one    : ∀ {f}     → Tree A n f                             → Some A n (D1 f)
+   two    : ∀ {f g}   → Tree A n f → Tree A n g                → Some A n (D2 f g)
+   three  : ∀ {f g h} → Tree A n f → Tree A n g → Tree A n h   → Some A n (D3 f g h) {-"~~,"-}
 
   data FingerTree (A : Set) (n : ℕ) : Binary n → Set where
     nil    : FingerTree A n B0
     [_]    : ∀ {f} → Tree A n f → FingerTree A n (B1 f)
-    _⟨_⟩_  : ∀ {df dr b} → Some A n df → FingerTree A (suc n) b → Some A n dr
-               → FingerTree A n (df ⟨ b ⟩ dr) {-"~~."-}
+    _⟨_⟩_  : ∀ {df dr b}  → Some A n df → FingerTree A (suc n) b
+                          → Some A n dr → FingerTree A n (df ⟨ b ⟩ dr) {-"~~."-}
 \end{code}
 
 Adding an element to the left mirrors |incL'|:
