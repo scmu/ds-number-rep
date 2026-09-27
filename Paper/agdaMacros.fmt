@@ -96,7 +96,9 @@
 %format g = "\Var g"
 %format h = "\Var h"
 %format i = "\Var i"
+%format j = "\Var j"
 %format k = "\Var k"
+%format l = "\Var l"
 %format m = "\Var m"
 %format n = "\Var n"
 %format p = "\Var p"
@@ -186,6 +188,10 @@
 %format node3 = "\Varid{node}_{3}"
 %format b₁ = "{\Var b}_{1}"
 %format b₂ = "{\Var b}_{2}"
+%format d₁ = "{\Var d}_{1}"
+%format d₂ = "{\Var d}_{2}"
+%format d₃ = "{\Var d}_{3}"
+
 
 %format ez1 = "\mathrm{0b}_{1}"
 %format ez2 = "\mathrm{0b}_{2}"
