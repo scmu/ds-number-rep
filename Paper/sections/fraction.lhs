@@ -7,8 +7,8 @@ In a decimal number $d_2 d_1 d_0$, the value contained by the $d_2 d_1$ part is 
 just like in |d ⟨ b ⟩ c| in Section~\ref{sec:sym-binary} where the value contained in |b| is always a multiple of $2$.
 But if we allow a mixed faction, say $8\frac{3}{10}$, to be a digit, the same number $987$ could be written $9\,8\frac{3}{10}\,4$, denoting $9 \times 10^2 + 8\frac{3}{10} \times 10 + 4$ --- the two most significant digits now represent $983$!
 Pushing it a bit further, $9\frac{21}{100}\, 6\frac{3}{10}\,3$ is yet another representation of $987$.
-
-Note that we still want every prefix of a number to represent a whole integer.
+%
+Note that we still want every prefix of a number to represent a whole number.
 Therefore, the most significat digit in $9\frac{21}{100}\, 6\frac{3}{10}\,3$ may have $100$ as its denominator, while the second digit may only use $10$ and not $100$.
 
 Our view is that \emph{Finger Trees arise
@@ -28,10 +28,10 @@ Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
 \end{spec}
 which reprsents $24$.
 The two |D2|'s on the lefthand side are taken from |n|, while the two |D1|'s from the righthand side are from |m|.
-One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n|.
+One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n| while constructing the result.
 The |D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-}| in the middle represents $(1 + 2\frac{3}{4})\times 2^2 = 15$.
 
-Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole integer.
+Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole number.
 In |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1|,
 the digit |D2{-"\!\frac{1}{2}"-}| has depth $1$ and is therefore allowed to have $2^1$ in the denominator;
 in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-} ⟩ D1 ⟩ D1|
@@ -39,7 +39,7 @@ the digit |D2{-"\!\frac{3}{4}"-}| has depth $2$, and is allowed to have $2^2 = 4
 
 These ideas will be made precise in the next few sections.
 
-\subsection{Fractional digits}
+\subsection{Representing fractional digits}
 
 How shall we represent a fractional digit?
 The following datatype |Sesq| represents a ``one'' possibly trailed by a fraction number (we loosely adopt the Latin prefix \emph{sesqui} that means ``one and a half'').
@@ -51,11 +51,11 @@ The type |Sesq n| is a non-empty tree whose internal nodes may have two or three
     [_+_+_]/2  : ∀ {n} → Sesq n → Sesq n → Sesq n → Sesq (suc n) {-"~~."-}
 \end{code}
 The intention is that |Sesq n| is a mixed fraction that may appear at depth |n| in a symmetric binary number.
-The leaf |one| is the only ``one'' allowed at depth $0$ --- no fractions allowed.
-At depth |1|, we may have |[ one + one ]/2|, which corresponds to a digit $1$ in binary representation.
+The leaf |one| is the only ``one'' that may appear at depth $0$ --- no fractions allowed.
+At depth |1|, we may have |[ one + one ]/2 : Sesq 1|, which corresponds to a digit $1$ in binary representation.
 It accommodates two |one|'s, since each time we descend a level in binary representation, the value contained is doubled.
 It is the third constructor that is new:
-we may also have |[ one + one + one ]/2| at depth $1$, which represents $\frac{3}{2} = 1\frac{1}{2}$.
+we may also have |[ one + one + one ]/2 : Sesq 1| at depth $1$, which represents $\frac{3}{2} = 1\frac{1}{2}$.
 
 More generally, let the function |sizeS| count the number of |one|'s in a tree:
 \begin{code}
@@ -64,7 +64,7 @@ More generally, let the function |sizeS| count the number of |one|'s in a tree:
   sizeS [ f + g ]/2      = sizeS f + sizeS g
   sizeS [ f + g + h ]/2  = sizeS f + sizeS g + sizeS h {-"~~."-}
 \end{code}
-A tree |f| having type |Sesq n| thus denotes the dyadic rational |sizeS f / {-"2^n"-}|.
+A tree |f| having type |Sesq n| denotes the dyadic rational |sizeS f / {-"2^n"-}|.
 
 \subsection{The symmetric fractional binary}
 
@@ -91,9 +91,9 @@ Its value is obtained by summing the fractional contributions:
   toN : Binary 0 → ℕ
   toN = sizeB {-"~~,"-}
 \end{code}
-where |sizeD| sums up the mixed fractions of a digit.
+where |sizeD : ∀ {n} → Digit n → ℕ| sums up the mixed fractions of a digit.
 
-The function |incL|, which increments a number by $1$ to the lefthand side,
+The function |incL|, which increments a number by $1$ at the left end,
 is now a special case of |incL'|, which adds a |Sesq| to a number at the left end:
 \begin{code}
   incL : Binary 0 → Binary 0
@@ -107,8 +107,8 @@ is now a special case of |incL'|, which adds a |Sesq| to a number at the left en
   incL' f (D3 g h i ⟨ b ⟩ dr)  = D2 f g ⟨ incL' [ h + i ]/2 b ⟩ dr {-"~~."-}
 \end{code}
 The last case of |incL'| is the crucial one.
-When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into the single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |incL'|.
-Adding a |Sesq| at the right end, |incR'|, is defined symmetrically.
+When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into a single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |incL'|.
+The function |incR'|, which adds a |Sesq| at the right end, is defined symmetrically.
 
 While |incL' f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| from a number:
 \begin{code}
@@ -120,7 +120,7 @@ While |incL' f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| fr
   decL (D1 f ⟨ B0 ⟩ D1 g)            = B1 g
   decL (D1 f ⟨ B1 [ g + h ]/2 ⟩ dr)  = D2 g h ⟨ B0 ⟩ dr
   decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ _ ⟩ _) ⟩ dr) = D2 g h ⟨ decL m ⟩ dr
-  {-"\mbox{... similar cases omitted.}"-}
+  {-"\mbox{... other cases omitted.}"-}
 \end{code}
 The cases for |B0|, |B1|, |D2|, and |D3| are relatively easy.
 The more interesting cases are those where the leftmost digit is |D1|, where we have to borrow from the inside and, when necessary, split the next digit we encounter.
@@ -141,7 +141,7 @@ decL-correct  : ∀ (b : Binary 0) → toN (decL b)  ≡ pred (toN b) {-"~~."-}
 
 \subsection{Addition}
 
-We are ready to come up with a digit-by-digit implementation of addition.
+We are now ready to present a digit-by-digit implementation of addition.
 The main idea is that, to add |x| and |y|, we keep the leftmost digit of |x| and the rightmost digit of |y|, while recursively process the middle.
 To maintain the middle part, we generalise addition to take three arguments:
 \begin{code}
