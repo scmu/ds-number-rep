@@ -1,8 +1,8 @@
 \section{Symmetric representation}
 \label{sec:sym-binary}
 
-%format df = "{\Var d}_{f}"
-%format dr = "{\Var d}_{r}"
+%format df = "{\Var d}_{\mathsf f}"
+%format dr = "{\Var d}_{\mathsf r}"
 For many reasons we want to investigate double-ended queues (deques), by which we mean list-like data structures that allow quick access to both ends.
 This ability \emph{might} eventually lead to an efficient |append|. Besides, the deque is a useful data structure in itself.
 
