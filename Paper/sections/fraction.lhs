@@ -3,35 +3,35 @@
 What if we allow mixed fractions in digits?
 
 In decimal representation, the digits are integers in $\{0..9\}$, and $987$, for example, denotes $9 \times 10^2 + 8 \times 10 + 7$.
-In a decimal number $d_2 d_1 d_0$, the value contained by the $d_2 d_1$ part is always a multiple of $10$,
+In a decimal number $d_2 d_1 d_0$, the value contained in the $d_2 d_1$ part is always a multiple of $10$,
 just like in |d ⟨ b ⟩ c| in Section~\ref{sec:sym-binary} where the value contained in |b| is always a multiple of $2$.
 But if we allow a mixed faction, say $8\frac{3}{10}$, to be a digit, the same number $987$ could be written $9\,8\frac{3}{10}\,4$, denoting $9 \times 10^2 + 8\frac{3}{10} \times 10 + 4$ --- the two most significant digits now represent $983$!
 Pushing it a bit further, $9\frac{21}{100}\, 6\frac{3}{10}\,3$ is yet another representation of $987$.
-
-Note that we still want every prefix of a number to represent a whole integer.
-Therefore, the most significat digit in $9\frac{21}{100}\, 6\frac{3}{10}\,3$ may have $100$ as its denominator, while the second digit may only use $10$ and not $100$.
+%
+Note that we still want every prefix of a number to represent a whole number.
+Therefore, the most significat digit in $9\frac{21}{100}\, 6\frac{3}{10}\,3$ may have $100$ as its denominator, while the second digit may only use $10$, not $100$.
 
 Our view is that \emph{Finger Trees arise
 from symmetrical, redundant, zeroless binary numbers with mixed fractional digits}.
-Consider again |m = | $17 =$  |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1|.
+Consider again |m = | |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1 ⟩ D1| (decimal $17$).
 Let |k = D2 ⟨ B0 ⟩ D1| (decimal $3$).
-The result of |add m k| could be
+The result of |add m k| can be:
 \begin{spec}
    D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1 {-"~~,"-}
 \end{spec}
 which represents $20$.
 The leftmost |D2| and the rightmost |D1| are respectively inherited from |m| and |k|,
 while |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-}| in the middle represents $17$.
-Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| is
+Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| can be:
 \begin{spec}
  D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-} ⟩ D1 ⟩ D1 {-"~~,"-}
 \end{spec}
 which reprsents $24$.
 The two |D2|'s on the lefthand side are taken from |n|, while the two |D1|'s from the righthand side are from |m|.
-One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n|.
+One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n| while constructing the result.
 The |D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-}| in the middle represents $(1 + 2\frac{3}{4})\times 2^2 = 15$.
 
-Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole integer.
+Likewise, in this representation we still want the partially constructed numbers in every depth to represent a whole number.
 In |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D2{-"\!\frac{1}{2}"-} ⟩ D1|,
 the digit |D2{-"\!\frac{1}{2}"-}| has depth $1$ and is therefore allowed to have $2^1$ in the denominator;
 in |D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-} ⟩ D1 ⟩ D1|
@@ -39,7 +39,7 @@ the digit |D2{-"\!\frac{3}{4}"-}| has depth $2$, and is allowed to have $2^2 = 4
 
 These ideas will be made precise in the next few sections.
 
-\subsection{Fractional digits}
+\subsection{Representing fractional digits}
 
 How shall we represent a fractional digit?
 The following datatype |Sesq| represents a ``one'' possibly trailed by a fraction number (we loosely adopt the Latin prefix \emph{sesqui} that means ``one and a half'').
@@ -51,11 +51,11 @@ The type |Sesq n| is a non-empty tree whose internal nodes may have two or three
     [_+_+_]/2  : ∀ {n} → Sesq n → Sesq n → Sesq n → Sesq (suc n) {-"~~."-}
 \end{code}
 The intention is that |Sesq n| is a mixed fraction that may appear at depth |n| in a symmetric binary number.
-The leaf |one| is the only ``one'' allowed at depth $0$ --- no fractions allowed.
-At depth |1|, we may have |[ one + one ]/2|, which corresponds to a digit $1$ in binary representation.
+The leaf |one| is the only ``one'' that may appear at depth $0$ --- no fractions allowed.
+At depth |1|, we may have |[ one + one ]/2 : Sesq 1|, which corresponds to a digit $1$ in binary representation.
 It accommodates two |one|'s, since each time we descend a level in binary representation, the value contained is doubled.
 It is the third constructor that is new:
-we may also have |[ one + one + one ]/2| at depth $1$, which represents $\frac{3}{2} = 1\frac{1}{2}$.
+we may also have |[ one + one + one ]/2 : Sesq 1| at depth $1$, which represents $\frac{3}{2} = 1\frac{1}{2}$.
 
 More generally, let the function |sizeS| count the number of |one|'s in a tree:
 \begin{code}
@@ -64,7 +64,7 @@ More generally, let the function |sizeS| count the number of |one|'s in a tree:
   sizeS [ f + g ]/2      = sizeS f + sizeS g
   sizeS [ f + g + h ]/2  = sizeS f + sizeS g + sizeS h {-"~~."-}
 \end{code}
-A tree |f| having type |Sesq n| thus denotes the dyadic rational |sizeS f / {-"2^n"-}|.
+A tree |f| having type |Sesq n| denotes the dyadic rational |sizeS f / {-"2^n"-}|.
 
 \subsection{The symmetric fractional binary}
 
@@ -91,9 +91,9 @@ Its value is obtained by summing the fractional contributions:
   toN : Binary 0 → ℕ
   toN = sizeB {-"~~,"-}
 \end{code}
-where |sizeD| sums up the mixed fractions of a digit.
+where |sizeD : ∀ {n} → Digit n → ℕ| sums up the mixed fractions of a digit.
 
-The function |incL|, which increments a number by $1$ to the lefthand side,
+The function |incL|, which increments a number by $1$ at the left end,
 is now a special case of |incL'|, which adds a |Sesq| to a number at the left end:
 \begin{code}
   incL : Binary 0 → Binary 0
@@ -107,8 +107,8 @@ is now a special case of |incL'|, which adds a |Sesq| to a number at the left en
   incL' f (D3 g h i ⟨ b ⟩ dr)  = D2 f g ⟨ incL' [ h + i ]/2 b ⟩ dr {-"~~."-}
 \end{code}
 The last case of |incL'| is the crucial one.
-When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into the single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |incL'|.
-Adding a |Sesq| at the right end, |incR'|, is defined symmetrically.
+When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the overflowing |h| and |i| into a single next-depth fraction |[ h + i ]/2|, and carry \emph{that} inward with a recursive |incL'|.
+The function |incR'|, which adds a |Sesq| at the right end, is defined symmetrically.
 
 While |incL' f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| from a number:
 \begin{code}
@@ -120,9 +120,9 @@ While |incL' f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| fr
   decL (D1 f ⟨ B0 ⟩ D1 g)            = B1 g
   decL (D1 f ⟨ B1 [ g + h ]/2 ⟩ dr)  = D2 g h ⟨ B0 ⟩ dr
   decL (D1 f ⟨ m@(D1 [ g + h ]/2 ⟨ _ ⟩ _) ⟩ dr) = D2 g h ⟨ decL m ⟩ dr
-  {-"\mbox{... similar cases omitted.}"-}
+  {-"\mbox{(... other cases omitted.)}"-}
 \end{code}
-The cases for |B0|, |B1|, |D2|, and |D3| are relatively easy.
+The cases for |B0|, |B1|, |D2|, and |D3| are relatively trivial.
 The more interesting cases are those where the leftmost digit is |D1|, where we have to borrow from the inside and, when necessary, split the next digit we encounter.
 
 It can be proved that |incL' f b| does increase the value of |b| by |sizeS f|,
@@ -141,9 +141,9 @@ decL-correct  : ∀ (b : Binary 0) → toN (decL b)  ≡ pred (toN b) {-"~~."-}
 
 \subsection{Addition}
 
-We are ready to come up with a digit-by-digit implementation of addition.
+We are now ready to present a digit-by-digit implementation of addition.
 The main idea is that, to add |x| and |y|, we keep the leftmost digit of |x| and the rightmost digit of |y|, while recursively process the middle.
-To maintain the middle part, we generalise addition to take three arguments:
+To maintain the middle part, we generalise addition to a function |add3| that takes three arguments:
 \begin{code}
 add : Binary 0 → Binary 0 → Binary 0
 add x y = add3 x D0 y {-"~~."-}
@@ -162,13 +162,13 @@ The type of |add3| is then given by:
 add3 : ∀ {n} → Binary n → Digit' n → Binary n → Binary n {-"~~."-}
 \end{code}
 
-%format xf = "{\Var x}_{f}"
-%format xr = "{\Var x}_{r}"
-%format yf = "{\Var y}_{f}"
-%format yr = "{\Var y}_{r}"
+%format xf = "{\Var x}_{\mathsf f}"
+%format xr = "{\Var x}_{\mathsf r}"
+%format yf = "{\Var y}_{\mathsf f}"
+%format yr = "{\Var y}_{\mathsf r}"
 Given the flexibility of factional digits, the function |add3| turns out to be surprisingly simple.
 Let |addDL : ∀ {n} → Digit' → Binary n → Binary n| add a digit to a number (by repeatedly calling |incL'|), and let |addDR| be its righthand side counterpart.
-The base cases of |add3|, where at least one of the numbers is |B0| or |B1|, are easy:
+The base cases of |add3|, where at least one of the numbers is |B0| or |B1|, are easy to define:
 \begin{code}
 add3 B0      d y       = addDL d y
 add3 (B1 f)  d y       = incL' f (addDL d y)
@@ -177,31 +177,31 @@ add3 x       d (B1 f)  = incR' (addDR x d) f {-"~~."-}
 \end{code}
 The last case is when both numbers are |_⟨_⟩_|:
 \begin{code}
-add3 (xf ⟨ x ⟩ xr) d (yf ⟨ y ⟩ yr) = xf ⟨ add3 x (combine xr d yf) y ⟩ yr {-"~~,"-}
+add3 (xf ⟨ x ⟩ xr) d (yf ⟨ y ⟩ yr) = xf ⟨ add3 x (combine xr d yf) y ⟩ yr {-"~~."-}
 \end{code}
-where we recurse on |x| and |y|, and use an auxiliary function |combine| that squeezes |xr|, |d|, and |yf| into a single digit.
+For this case, |add3| recurses on the middle parts |x| and |y|, and uses an auxiliary function |combine| that squeezes the three digits |xr|, |d|, and |yf| into a single digit.
 But is that possible?
 
 Certainly! The function |combine| has type:
 \begin{code}
 combine : ∀ {n} → Digit n → Digit' n → Digit n → Digit' (suc n)
 \end{code}
-In |combine a d b|, the values of |a| and |b| are between |{1..3}|, and the value of |d| is between |{0..3}|. The sum of the three digits ranges between |{2..9}| --- which certainly fits into a |Digit'| {one level deeper}!
+In |combine a d b|, the values of |a| and |b| are between $\{1..3\}$, and the value of |d| is between $\{0..3\}$. The sum of the three digits ranges between $\{2..9\}$ --- which certainly fits into a |Digit'| {one level deeper}!
 \todo{Are the ranges still correct if we consider fractions?}
 There are more than one way to do so.
-The |Digit'| is built using |[ _ + _ ]/2| and |[ _ + _ + _ ]/2|.
-A reasonable heuristic is to try to evenly partition the values into the branches.
+The result is either a |D1|, a |D2|, or a |D3|, which respectively contains one, two, or three |Sesq|s. Each |Sesq| may contain two fractions (if built using |[ _ + _ ]/2|) or three fractions (using |[ _ + _ + _ ]/2|).
+A reasonable heuristic is to try to evenly partition the values into the |Sesq|s.
 The following are some example cases:
 \begin{spec}
   combine (D1 f)      D0           (D1 g)        = D1 [ f + g ]/2
   combine (D1 f)      D0           (D3 g h i)    = D2 [ f + g ]/2 [ h + i ]/2
   combine (D3 f g h)  (D3 i j k)   (D3 l m p)    = D3 [ f + g + h ]/2 [ i + j + k ]/2 [ l + m + p ]/2
-  {-"\mbox{(other cases omitted)}"-}
+  {-"\mbox{(... other cases omitted.)}"-}
 \end{spec}
+While there are more clever ways to implement |combine|,
+it can essentially be defined non-recursively by exhaustively matching all the cases.
 How |combine| actually builds the digit does not matter to the asymptotic complexity of |add|.
 What matter is that |combine| is a constant time operation.
-While there are more clever ways to define |combine|,
-it is essentially a constant-time function that can be defined non-recursively by exhaustively matching all the cases.
 
 The function |add3| is defined inductively on the structure of the given numbers and calls, |combine|, a constant time operation before each recursion.
 It calls |incL'| and |incR'|, etc., only at the base cases.
@@ -250,7 +250,7 @@ Adding an element to the left mirrors |incL'|:
   cons : ∀ {A b} → A → FingerTree A 0 b → FingerTree A 0 (incL b)
   cons x xs = cons' (leaf x) xs {-"~~."-}
 \end{code}
-The carry case builds a |node2 z w| and conses it into the spine --- the ornamented image of |addSL| turning a |D3| into a next-depth |[ h + i ]/2|.
+The carrying case builds a |node2 z w| and conses it into the spine --- it is the ornamented image of |incL'| turning a |D3| into a next-depth |[ h + i ]/2|.
 Because the leftmost element always sits at the front, |head| is $O(1)$:
 \begin{code}
   head : ∀ {A b} → FingerTree A 0 b → (b ≢ B0) → A {-"~~,"-}
@@ -284,5 +284,5 @@ Utilised by |glue| is a function |combineSome|, corresponding to |combine|, havi
 combineSome  : ∀ {A n d₁ d₂ d₃} → Some A n d₁ → Some' A n d₂
              → Some A n d₃ → Some' A (suc n) (combine d₁ d₂ d₃) {-"~~,"-}
 \end{code}
-that joins two |Some| and a |Some'| into a |Some'| of the next level.
+that joins two |Some|s and a |Some'| into a |Some'| of the next level.
 All these functions inherit the same time complexities of their numerical counterparts.
