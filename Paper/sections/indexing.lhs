@@ -97,8 +97,7 @@ The zero index |izero| points at the element |cons| has just placed at the front
   isucc (i cB2)  = (isucc i) cB1 {-"~~."-}
 \end{code}
 The clauses for a |D1| digit retag it as a |D2| digit, which is what |inc| does to the size.
-The last two clauses are the carry: a position that has run off the end of a |D2| digit forces a successor one digit up, exactly as |inc| carries, and the new low bit says which half of the doubled tail the position occupies.
-Reading with |toF| turns this into successor on |Fin|,
+\todo{explain isucc behaves like suc}
 \begin{code}
   isucc-correct : ∀ {n} (i : Idx n) → toF (isucc i) ≡ is (toF i) {-"~~."-}
 \end{code}
@@ -116,3 +115,61 @@ These connect to the container through the specification of a one-sided flexible
 \end{spec}
 The move from unary lists to binary numbers for sizes thus also yields binary numbers for positions.
 |Idx| is the ornament of the zeroless |Binary| in the index direction, just as |BList| is its ornament in the data direction, both cut to the same digits.
+
+\subsection{Indices for redundant binary}
+\label{sec:redundant-index}
+
+A |D3| digit stores three elements and has two ways into the doubled tail.
+The index gains three base positions and two branches:
+\begin{code}
+  ez3   : ∀ {n} →          Idx (D3 ∷ n)
+  eo3   : ∀ {n} →          Idx (D3 ∷ n)
+  et3   : ∀ {n} →          Idx (D3 ∷ n)
+  _cA3  : ∀ {n} → Idx n →  Idx (D3 ∷ n)
+  _cB3  : ∀ {n} → Idx n →  Idx (D3 ∷ n) {-"~~."-}
+\end{code}
+|lookup|, |toF|, and |fromF| extend those already given in Section~\ref{sec:binary-index}.
+The round trips still hold for a fixed numeral, so |Idx n| and |Fin (toN n)| are still two writings of one range.
+
+Each numeral has its own |Idx|.
+Both |D3 ∷ []| and |D1 ∷ D1 ∷ []| denote |3|, so a position below |3| may be written in either family.
+|reindex| translates an index from one writing to the other:
+\begin{code}
+  reindex : ∀ {r r'} → toN r ≡ toN r' → Idx r → Idx r'
+  reindex eq i = fromF (subst Fin eq (toF i)) {-"~~."-}
+\end{code}
+The position denoted by |toF| is unchanged.
+The front element is |ez1|, and the other two are the two halves of the element in the tail:
+\begin{spec}
+  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl ez3  ≡ ez1
+  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl eo3  ≡ (ez1 cA1)
+  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl et3  ≡ (ez1 cB1) {-"~~."-}
+\end{spec}
+\todo{avoid explain isucc again?}
+
+|toF (isucc i) ≡ is (toF i)| still holds.
+
+After |tail|, an element that remains has an index of type |Idx (dec n)| in the tail and of type |Idx n| in the original list.
+|ishift| sends the first to the second.
+Successor steps from |Idx (dec n)| into |Idx (inc (dec n))|; |reindex| then steps to |n|, along the equality of the two values:
+\begin{code}
+  shift-eq : ∀ n → toN n ≢ 0 → toN (inc (dec n)) ≡ toN n
+
+  ishift : ∀ {n} → Idx (dec n) → Idx n
+
+  ishift-reindex : ∀ {n} (nz : toN n ≢ 0) (i : Idx (dec n))
+                 → ishift i ≡ reindex (shift-eq n nz) (isucc i) {-"~~."-}
+\end{code}
+In the zeroless representation, |inc (dec n)| and |n| are the same numeral, so the relabelling is the identity and |ishift| is |isucc|.
+That is the |lookup-tail| law of the previous subsection.
+|izero'| is the front position of a non-empty numeral:
+\begin{code}
+  izero' : ∀ {n} → (n ≢ []) → Idx n {-"~~."-}
+\end{code}
+The specification is unchanged for |cons|, while |head| and |tail| take the types of Section~\ref{sec:redundant-binary}:
+\begin{spec}
+  lookup-head   : ∀ {A n} (xs : BList A n) (nz : n ≢ [])
+                → head xs nz ≡ lookup xs (izero' nz)
+  lookup-tail   : ∀ {A n} (xs : BList A n) (i : Idx (dec n))
+                → lookup (tail xs) i ≡ lookup xs (ishift i) {-"~~."-}
+\end{spec}
