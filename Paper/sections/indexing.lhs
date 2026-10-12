@@ -173,3 +173,73 @@ The specification is unchanged for |cons|, while |head| and |tail| take the type
   lookup-tail   : ∀ {A n} (xs : BList A n) (i : Idx (dec n))
                 → lookup (tail xs) i ≡ lookup xs (ishift i) {-"~~."-}
 \end{spec}
+
+\subsection{Indices for symmetric binary}
+\label{sec:symmetric-index}
+
+In the symmetric representation of Section~\ref{sec:sym-binary}, a position lies in one of the outer digits or in the doubled middle.
+For each pair of outer digits in |df ⟨ n ⟩ dr|, the index type has local constructors for the positions in |df| and |dr|, and two recursive constructors selecting the two halves of a position in |n|.
+The recursive constructors record the contributions at both ends, extending the numerical reading of the one-sided indices.
+\begin{spec}
+  Idx : SBinary → Set {-"~~."-}
+\end{spec}
+\todo{Give the constructors of Idx}
+
+Lookup follows the index as before, but can now stop at either outer digit.
+\begin{code}
+  lookup : ∀ {A n} → List A n → Idx n → A {-"~~."-}
+\end{code}
+\todo{some cases of lookup?}
+
+The same index can be read numerically from both ends.
+For example, in |D1 ⟨ n ⟩ D1|, the constructor $\langle\!\langle 1_1\,i\,2_1\rangle\!\rangle$ selects the first half of the middle position |i|.
+If |i| has |k| positions before it and |l| after it, the resulting index has |1 + 2 * k| positions before it and |2 + 2 * l| after it.
+The front count includes the one element in the front digit; the rear count includes both the other half of the selected pair and the one element in the rear digit.
+The index operations now come in left and right variants:
+\begin{code}
+  izeroL : ∀ {n} →         Idx (incL n)
+  izeroR : ∀ {n} →         Idx (incR n)
+  isuccL : ∀ {n} → Idx n → Idx (incL n)
+  isuccR : ∀ {n} → Idx n → Idx (incR n) {-"~~."-}
+\end{code}
+Writing |before i| and |after i| for the numbers of positions before and after |i|, we can describe each operation from the corresponding end.
+As before, |toF| reads an index as a position from the front, so its numerical value is |before i|; together, the two counts satisfy |before i + 1 + after i = toN n| for |i : Idx n|.
+The zero indices point at the newly inserted elements, while the successors locate the old elements after insertion:
+\begin{spec}
+  before izeroL       ≡ 0
+  after izeroR        ≡ 0
+  before (isuccL i)   ≡ suc (before i)
+  after (isuccR i)    ≡ suc (after i) {-"~~."-}
+\end{spec}
+Thus |isuccR| increases the distance from the rear while leaving the distance from the front unchanged: appending an element adds one position after every old element.
+Symmetrically, |isuccL| increases the distance from the front while leaving the distance from the rear unchanged.
+
+The definitions follow the carries in |incL| and |incR|, and satisfy the familiar lookup laws at both ends:
+\begin{spec}
+  lookup-izeroL : ∀ {A n} (x : A) (xs : List A n)
+                → lookup (cons x xs) izeroL ≡ x
+  lookup-isuccL : ∀ {A n} (x : A) (xs : List A n) (i : Idx n)
+                → lookup (cons x xs) (isuccL i) ≡ lookup xs i
+  lookup-izeroR : ∀ {A n} (xs : List A n) (x : A)
+                → lookup (snoc xs x) izeroR ≡ x
+  lookup-isuccR : ∀ {A n} (xs : List A n) (x : A) (i : Idx n)
+                → lookup (snoc xs x) (isuccR i) ≡ lookup xs i {-"~~."-}
+\end{spec}
+
+Deletion gives two variants of |ishift|:
+\begin{code}
+  ishiftL : ∀ {n} → Idx (decL n) → Idx n
+  ishiftR : ∀ {n} → Idx (decR n) → Idx n {-"~~."-}
+\end{code}
+These map a position in |tail xs| or |init xs| back to its position in |xs|.
+The first increases |before| by one, and the second increases |after| by one.
+As in Section~\ref{sec:redundant-index}, each is a successor followed by reindexing.
+For non-empty |n|, both |incL (decL n)| and |incR (decR n)| have the same value as |n|, although their representations may differ.
+Reindexing preserves the position and hence both distances, giving the specifications:
+\begin{spec}
+  lookup-tail : ∀ {A n} (xs : List A n) (i : Idx (decL n))
+               → lookup (tail xs) i ≡ lookup xs (ishiftL i)
+  lookup-init : ∀ {A n} (xs : List A n) (i : Idx (decR n))
+               → lookup (init xs) i ≡ lookup xs (ishiftR i) {-"~~."-}
+\end{spec}
+Finally, |head| selects the position with no elements before it, and |last| the position with no elements after it.
