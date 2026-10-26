@@ -1,245 +1,106 @@
 \section{Indexing}
 \label{sec:indexing}
 
-\todo{introduce indexing.}
+We return to the lookup problem postponed in Section~\ref{sec:redundant-binary}.
+A position |i| counts elements from the front, starting at zero.
+For a one-sided binary list, lookup has the interface:
+\begin{spec}
+  lookup : ∀ {A b} → BList A b → Fin (toN b) → A {-"~~."-}
+\end{spec}
 
-\subsection{Indices as binary numbers}
+\subsection{Lookup in one-sided binary lists}
 \label{sec:binary-index}
 
-Just as |Fin n|, the type of naturals below |n|, with |iz : Fin (inc n)| and |is : Fin n → Fin (inc n)| mirroring |zero| and |suc| --- indexes a length-|n| vector, |Idx n| indexes a |BList A n|.
-Where |Fin| gives a unary account of the naturals below a bound, |Idx| gives a binary one, laid out along the digits of |n|.
-
-A digit |D1| contributes one local position and two copies of the positions below |n|; a digit |D2| contributes two local positions and the same two copies.
-Naming those summands gives |Idx|.
-A |D1| digit stores one element and has two ways into the doubled tail, hence one base position |ez1| and two recursive branches |_cA1|, |_cB1|; a |D2| digit stores two elements, hence base positions |ez2|, |eo2| and branches |_cA2|, |_cB2|:
-\begin{code}
-  data Idx : Binary → Set where
-    ez1   : ∀ {n} →          Idx (D1 ∷ n)
-    _cA1  : ∀ {n} → Idx n →  Idx (D1 ∷ n)
-    _cB1  : ∀ {n} → Idx n →  Idx (D1 ∷ n)
-    ez2   : ∀ {n} →          Idx (D2 ∷ n)
-    eo2   : ∀ {n} →          Idx (D2 ∷ n)
-    _cA2  : ∀ {n} → Idx n →  Idx (D2 ∷ n)
-    _cB2  : ∀ {n} → Idx n →  Idx (D2 ∷ n) {-"~~."-}
-\end{code}
-Counting the constructors of a digit recovers its weight: |D1| contributes |1| base position plus |2| branches into the tail, and |D2| contributes |2| plus |2|.
-
-The function |lookup| follows an index as a path through the list.
-A local constructor returns the element stored at this digit; a branch projects one half of the paired tail and recurses:
-\begin{code}
-  lookup : ∀ {A n} → BList A n → Idx n → A
-  lookup (one x    ∷ xs)  ez1      = x
-  lookup (one x    ∷ xs)  (i cA1)  = proj₁ (lookup xs i)
-  lookup (one x    ∷ xs)  (i cB1)  = proj₂ (lookup xs i)
-  lookup (two x y  ∷ xs)  ez2      = x
-  lookup (two x y  ∷ xs)  eo2      = y
-  lookup (two x y  ∷ xs)  (i cA2)  = proj₁ (lookup xs i)
-  lookup (two x y  ∷ xs)  (i cB2)  = proj₂ (lookup xs i) {-"~~."-}
-\end{code}
-
-An index can be seen as a binary numeral. Reading it outward, |toF| sends |Idx n| to the position it denotes in |Fin (toN n)|.
-A local constructor is the first position, or the first or second; a branch doubles the tail's position and sets the low bit.
-The postfix operations |_dblO| and |_dblI| send |i| to the even position |2 * i| and the odd position |2 * i + 1|, both below a doubled bound:
-\begin{code}
-  toF : ∀ {n} → Idx n → Fin (toN n)
-  toF ez1      = iz
-  toF (i cA1)  = is ((toF i) dblO)
-  toF (i cB1)  = is ((toF i) dblI)
-  toF ez2      = iz
-  toF eo2      = is iz
-  toF (i cA2)  = is (is ((toF i) dblO))
-  toF (i cB2)  = is (is ((toF i) dblI)) {-"~~."-}
-\end{code}
-
-The other direction, |fromF|, sends a |Fin| back to an |Idx|.
-Given a position in |Fin (toN n)|, it peels off the current digit by halving.
-The auxiliary |_halfF| splits a doubled position into a quotient and a remainder:
-\begin{code}
-  _halfF : ∀ {n} → Fin (2 * n) → (Fin n × Fin 2)
-  iz           halfF = iz  , iz
-  is iz        halfF = iz  , is iz
-  is (is i)    with i halfF
-  ... | q , r  = is q , r {-"~~,"-}
-
-  fromF : ∀ {n} → Fin (toN n) → Idx n
-  fromF {D1 ∷ n} iz           = ez1
-  fromF {D1 ∷ n} (is i)       with i halfF
-  ... | j , iz    = (fromF j) cA1
-  ... | j , is iz = (fromF j) cB1
-  fromF {D2 ∷ n} iz           = ez2
-  fromF {D2 ∷ n} (is iz)      = eo2
-  fromF {D2 ∷ n} (is (is i))  with i halfF
-  ... | j , iz    = (fromF j) cA2
-  ... | j , is iz = (fromF j) cB2 {-"~~."-}
-\end{code}
-This shows that the outward reading recovers every |Fin| position,
-\begin{code}
-  toF-fromF : ∀ {n} (i : Fin (toN n)) → toF (fromF i) ≡ i {-"~~,"-}
-\end{code}
-and the same induction on |Idx| gives the other round trip, |fromF (toF i) ≡ i|.
-With both maps on the page, |Idx n| and |Fin (toN n)| are two notations for one finite range: |Fin| writes it in unary, and |Idx| writes it in the digits of |n|.
-
-Because |Idx| is a number system, it carries its own arithmetic.
-The zero index |izero| points at the element |cons| has just placed at the front, and |isucc| is successor on positions:
-\begin{code}
-  izero : ∀ {n} → Idx (inc n)
-  izero {B0}      = ez1
-  izero {D1 ∷ n}  = ez2
-  izero {D2 ∷ n}  = ez1 {-"~~,"-}
-
-  isucc : ∀ {n} → Idx n → Idx (inc n)
-  isucc ez1      = eo2
-  isucc (i cA1)  = i cA2
-  isucc (i cB1)  = i cB2
-  isucc ez2      = izero cA1
-  isucc eo2      = izero cB1
-  isucc (i cA2)  = (isucc i) cA1
-  isucc (i cB2)  = (isucc i) cB1 {-"~~."-}
-\end{code}
-The clauses for a |D1| digit retag it as a |D2| digit, which is what |inc| does to the size.
-\todo{explain isucc behaves like suc}
-\begin{code}
-  isucc-correct : ∀ {n} (i : Idx n) → toF (isucc i) ≡ is (toF i) {-"~~."-}
-\end{code}
-
-These connect to the container through the specification of a one-sided flexible array:
+In a zeroless binary list, a |one| digit holds the element at position |0|.
+The pair at position |j| in the tail contributes elements at positions |1 + 2 * j| and |1 + 2 * j + 1| in the whole list.
+To look up a later position |i|, we therefore subtract one, divide by two to locate the pair, and use parity to select its first or second element.
+A |two| digit works the same way, except that its local positions are |0| and |1|, and later positions use the offset |i - 2|:
 \begin{spec}
-  lookup-izero  : ∀ {A n} (x : A) (xs : BList A n)
-                → lookup (cons x xs) izero ≡ x
-  lookup-isucc  : ∀ {A n} (x : A) (xs : BList A n) (i : Idx n)
-                → lookup (cons x xs) (isucc i) ≡ lookup xs i
-  lookup-head   : ∀ {A n} (xs : BList A (inc n))
-                → head xs ≡ lookup xs izero
-  lookup-tail   : ∀ {A n} (xs : BList A (inc n)) (i : Idx n)
-                → lookup (tail xs) i ≡ lookup xs (isucc i) {-"~~."-}
+  lookup (one x ∷ xs) 0 = x
+  lookup (one _ ∷ xs) i
+    | even (i - 1) = proj₁ (lookup xs ((i - 1) div 2))
+    | odd  (i - 1) = proj₂ (lookup xs ((i - 1) div 2))
+  lookup (two x y ∷ xs) 0 = x
+  lookup (two x y ∷ xs) 1 = y
+  lookup (two _ _ ∷ xs) i
+    | even (i - 2) = proj₁ (lookup xs ((i - 2) div 2))
+    | odd  (i - 2) = proj₂ (lookup xs ((i - 2) div 2)) {-"~~."-}
 \end{spec}
-The move from unary lists to binary numbers for sizes thus also yields binary numbers for positions.
-|Idx| is the ornament of the zeroless |Binary| in the index direction, just as |BList| is its ornament in the data direction, both cut to the same digits.
+If the digit holds |d| elements and the tail holds |m| pairs, the list has |d + 2 * m| positions, so every remaining offset is below |2 * m| and its quotient by two is below |m|.
 
-\subsection{Indices for redundant binary}
+For example, the list
+\begin{spec}
+  one a ∷ two (b , c) (d , e) ∷ nil
+\end{spec}
+represents the sequence |[ a , b , c , d , e ]|.
+To look up position |4|, subtract one at the front digit, leaving offset |3|.
+The recursive lookup at |3 div 2 = 1| returns the pair |(d , e)| from the tail's |two| digit.
+Since |3| is odd, |proj₂| selects |e|. \todo{a graph example?}
+
+This halving of positions is the counterpart of the doubling of element types in Section~2: a tail element has type |A × A|, so it accounts for two consecutive positions at the current level.
+Selecting a local element or projecting a pair takes constant time, and each recursive call visits a tail with at most half as many positions.
+Thus lookup in a list of size |N| takes $O(\log N)$ time in the worst case.
+
 \label{sec:redundant-index}
-
-A |D3| digit stores three elements and has two ways into the doubled tail.
-The index gains three base positions and two branches:
-\begin{code}
-  ez3   : ∀ {n} →          Idx (D3 ∷ n)
-  eo3   : ∀ {n} →          Idx (D3 ∷ n)
-  et3   : ∀ {n} →          Idx (D3 ∷ n)
-  _cA3  : ∀ {n} → Idx n →  Idx (D3 ∷ n)
-  _cB3  : ∀ {n} → Idx n →  Idx (D3 ∷ n) {-"~~."-}
-\end{code}
-|lookup|, |toF|, and |fromF| extend those already given in Section~\ref{sec:binary-index}.
-The round trips still hold for a fixed numeral, so |Idx n| and |Fin (toN n)| are still two writings of one range.
-
-Each numeral has its own |Idx|.
-Both |D3 ∷ []| and |D1 ∷ D1 ∷ []| denote |3|, so a position below |3| may be written in either family.
-|reindex| translates an index from one writing to the other:
-\begin{code}
-  reindex : ∀ {r r'} → toN r ≡ toN r' → Idx r → Idx r'
-  reindex eq i = fromF (subst Fin eq (toF i)) {-"~~."-}
-\end{code}
-The position denoted by |toF| is unchanged.
-The front element is |ez1|, and the other two are the two halves of the element in the tail:
+For the redundant lists of Section~\ref{sec:redundant-binary}, only the clauses for |three| need to be added.
+Its three elements occupy positions |0|, |1|, and |2|; later positions have offset |i - 3| into the paired tail:
 \begin{spec}
-  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl ez3  ≡ ez1
-  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl eo3  ≡ (ez1 cA1)
-  reindex {D3 ∷ B0} {D1 ∷ D1 ∷ B0} refl et3  ≡ (ez1 cB1) {-"~~."-}
+  lookup (three x y z ∷ xs) 0 = x
+  lookup (three x y z ∷ xs) 1 = y
+  lookup (three x y z ∷ xs) 2 = z
+  lookup (three _ _ _ ∷ xs) i
+    | even (i - 3) = proj₁ (lookup xs ((i - 3) div 2))
+    | odd  (i - 3) = proj₂ (lookup xs ((i - 3) div 2)) {-"~~."-}
 \end{spec}
-\todo{avoid explain isucc again?}
+The same bound calculation applies with |d = 3|, and the worst-case cost remains $O(\log N)$.
 
-|toF (isucc i) ≡ is (toF i)| still holds.
-
-After |tail|, an element that remains has an index of type |Idx (dec n)| in the tail and of type |Idx n| in the original list.
-|ishift| sends the first to the second.
-Successor steps from |Idx (dec n)| into |Idx (inc (dec n))|; |reindex| then steps to |n|, along the equality of the two values:
-\begin{code}
-  shift-eq : ∀ n → toN n ≢ 0 → toN (inc (dec n)) ≡ toN n
-
-  ishift : ∀ {n} → Idx (dec n) → Idx n
-
-  ishift-reindex : ∀ {n} (nz : toN n ≢ 0) (i : Idx (dec n))
-                 → ishift i ≡ reindex (shift-eq n nz) (isucc i) {-"~~."-}
-\end{code}
-In the zeroless representation, |inc (dec n)| and |n| are the same numeral, so the relabelling is the identity and |ishift| is |isucc|.
-That is the |lookup-tail| law of the previous subsection.
-|izero'| is the front position of a non-empty numeral:
-\begin{code}
-  izero' : ∀ {n} → (n ≢ []) → Idx n {-"~~."-}
-\end{code}
-The specification is unchanged for |cons|, while |head| and |tail| take the types of Section~\ref{sec:redundant-binary}:
-\begin{spec}
-  lookup-head   : ∀ {A n} (xs : BList A n) (nz : n ≢ [])
-                → head xs nz ≡ lookup xs (izero' nz)
-  lookup-tail   : ∀ {A n} (xs : BList A n) (i : Idx (dec n))
-                → lookup (tail xs) i ≡ lookup xs (ishift i) {-"~~."-}
-\end{spec}
-
-\subsection{Indices for symmetric binary}
+\subsection{Lookup in double-ended queues}
 \label{sec:symmetric-index}
 
-In the symmetric representation of Section~\ref{sec:sym-binary}, a position lies in one of the outer digits or in the doubled middle.
-For each pair of outer digits in |df ⟨ n ⟩ dr|, the index type has local constructors for the positions in |df| and |dr|, and two recursive constructors selecting the two halves of a position in |n|.
-The recursive constructors record the contributions at both ends, extending the numerical reading of the one-sided indices.
-\begin{spec}
-  Idx : SBinary → Set {-"~~."-}
-\end{spec}
-\todo{Give the constructors of Idx}
+The symmetric representation of Section~\ref{sec:sym-binary} gives a deque with elements at both ends.
+We write |nil| for the empty container, |[ x ]| for a singleton, and |f ⟨ xs ⟩ r| for a deep container with front digit |f|, paired middle |xs|, and rear digit |r|.\todo{placeholder, no constructor in section 3}
+For an outer digit |f|, |size f| is its number of elements: |1| for |one|, |2| for |two|, or |3| for |three|.
+We also match positions from the rear using |opposite|: within a bound |N|, |opposite i| denotes |N - 1 - i|.
+Thus |opposite 0| is the last position, |opposite 1| the position before it, and so on.
 
-Lookup follows the index as before, but can now stop at either outer digit.
-\begin{code}
-  lookup : ∀ {A n} → List A n → Idx n → A {-"~~."-}
-\end{code}
-\todo{some cases of lookup?}
-
-The same index can be read numerically from both ends.
-For example, in |D1 ⟨ n ⟩ D1|, the constructor $\langle\!\langle 1_1\,i\,2_1\rangle\!\rangle$ selects the first half of the middle position |i|.
-If |i| has |k| positions before it and |l| after it, the resulting index has |1 + 2 * k| positions before it and |2 + 2 * l| after it.
-The front count includes the one element in the front digit; the rear count includes both the other half of the selected pair and the one element in the rear digit.
-The index operations now come in left and right variants:
-\begin{code}
-  izeroL : ∀ {n} →         Idx (incL n)
-  izeroR : ∀ {n} →         Idx (incR n)
-  isuccL : ∀ {n} → Idx n → Idx (incL n)
-  isuccR : ∀ {n} → Idx n → Idx (incR n) {-"~~."-}
-\end{code}
-Writing |before i| and |after i| for the numbers of positions before and after |i|, we can describe each operation from the corresponding end.
-As before, |toF| reads an index as a position from the front, so its numerical value is |before i|; together, the two counts satisfy |before i + 1 + after i = toN n| for |i : Idx n|.
-The zero indices point at the newly inserted elements, while the successors locate the old elements after insertion:
+At a deep container, let |p = size f| and |q = size r| be the front and rear sizes, and let |N| be the total number of elements at the current level.
+The middle then contains |m = (N - p - q) div 2| pairs, with |N = p + 2 * m + q|.
+Lookup in a deque retains the form of the one-sided definition:
 \begin{spec}
-  before izeroL       ≡ 0
-  after izeroR        ≡ 0
-  before (isuccL i)   ≡ suc (before i)
-  after (isuccR i)    ≡ suc (after i) {-"~~."-}
+  lookup [ x ] 0 = x
+  lookup (one x ⟨ xs ⟩ r) 0 = x
+  lookup (two x y ⟨ xs ⟩ r) 0 = x
+  lookup (two x y ⟨ xs ⟩ r) 1 = y
+  lookup (three x y z ⟨ xs ⟩ r) 0 = x
+  lookup (three x y z ⟨ xs ⟩ r) 1 = y
+  lookup (three x y z ⟨ xs ⟩ r) 2 = z
+  lookup (f ⟨ xs ⟩ one x) (opposite 0) = x
+  lookup (f ⟨ xs ⟩ two x y) (opposite 0) = y
+  lookup (f ⟨ xs ⟩ two x y) (opposite 1) = x
+  lookup (f ⟨ xs ⟩ three x y z) (opposite 0) = z
+  lookup (f ⟨ xs ⟩ three x y z) (opposite 1) = y
+  lookup (f ⟨ xs ⟩ three x y z) (opposite 2) = x
+  lookup (f ⟨ xs ⟩ r) i
+    | even (i - p) = proj₁ (lookup xs ((i - p) div 2))
+    | odd  (i - p) = proj₂ (lookup xs ((i - p) div 2))
+    where p = size f {-"~~."-}
 \end{spec}
-Thus |isuccR| increases the distance from the rear while leaving the distance from the front unchanged: appending an element adds one position after every old element.
-Symmetrically, |isuccL| increases the distance from the front while leaving the distance from the rear unchanged.
+The front clauses match positions |0| through |p - 1|, and the rear clauses match positions |N - q| through |N - 1|.
+Only after both sets of local positions have been excluded does the final clause apply, with |p ≤ i < N - q|.
+Subtract the front digit's size to obtain |j = i - p|, look up pair |j div 2|, and select its first or second element according to the parity of |j|.
 
-The definitions follow the carries in |incL| and |incR|, and satisfy the familiar lookup laws at both ends:
+For example,
 \begin{spec}
-  lookup-izeroL : ∀ {A n} (x : A) (xs : List A n)
-                → lookup (cons x xs) izeroL ≡ x
-  lookup-isuccL : ∀ {A n} (x : A) (xs : List A n) (i : Idx n)
-                → lookup (cons x xs) (isuccL i) ≡ lookup xs i
-  lookup-izeroR : ∀ {A n} (xs : List A n) (x : A)
-                → lookup (snoc xs x) izeroR ≡ x
-  lookup-isuccR : ∀ {A n} (xs : List A n) (x : A) (i : Idx n)
-                → lookup (snoc xs x) (isuccR i) ≡ lookup xs i {-"~~."-}
+  one a ⟨ [ (b , c) ] ⟩ two d e
 \end{spec}
+has |p = 1|, |q = 2|, |N = 5|, and |m = 1|.
+Its five positions select |a|, |b|, |c|, |d|, and |e| in that order.
+Position |1| is the first middle position: subtracting |p| leaves |0|, so the recursive lookup returns the singleton pair and |proj₁| selects |b|; position |2| selects its second element, |c|.
+Position |3 = opposite 1| matches the first element of the rear |two| and returns |d|; position |4 = opposite 0| returns |e|.\todo{a graph example?}
 
-Deletion gives two variants of |ishift|:
-\begin{code}
-  ishiftL : ∀ {n} → Idx (decL n) → Idx n
-  ishiftR : ∀ {n} → Idx (decR n) → Idx n {-"~~."-}
-\end{code}
-These map a position in |tail xs| or |init xs| back to its position in |xs|.
-The first increases |before| by one, and the second increases |after| by one.
-As in Section~\ref{sec:redundant-index}, each is a successor followed by reindexing.
-For non-empty |n|, both |incL (decL n)| and |incR (decR n)| have the same value as |n|, although their representations may differ.
-Reindexing preserves the position and hence both distances, giving the specifications:
-\begin{spec}
-  lookup-tail : ∀ {A n} (xs : List A n) (i : Idx (decL n))
-               → lookup (tail xs) i ≡ lookup xs (ishiftL i)
-  lookup-init : ∀ {A n} (xs : List A n) (i : Idx (decR n))
-               → lookup (init xs) i ≡ lookup xs (ishiftR i) {-"~~."-}
-\end{spec}
-Finally, |head| selects the position with no elements before it, and |last| the position with no elements after it.
+Selection in either outer digit takes constant time.
+Let |k = min i (N - 1 - i)| be the number of elements between the selected element and the nearer end.
+Each recursive step subtracts the outer digits' sizes and halves the remaining distances to both ends, so lookup takes $O(1 + \log(k + 1))$ time, and hence $O(\log N)$ in the worst case.
+
+\subsection{Lookup in Finger Tree}
+\todo{finger tree lookup}
