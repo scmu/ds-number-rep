@@ -35,12 +35,13 @@ For example, the list
 represents the sequence |[ a , b , c , d , e ]|.
 To look up position |4|, subtract one at the front digit, leaving offset |3|.
 The recursive lookup at |3 div 2 = 1| returns the pair |(d , e)| from the tail's |two| digit.
-Since |3| is odd, |proj₂| selects |e|. \todo{a graph example?}
+Since |3| is odd, |proj₂| selects |e|.
 
 This halving of positions is the counterpart of the doubling of element types in Section~2: a tail element has type |A × A|, so it accounts for two consecutive positions at the current level.
 Selecting a local element or projecting a pair takes constant time, and each recursive call visits a tail with at most half as many positions.
 Thus lookup in a list of size |N| takes $O(\log N)$ time in the worst case.
 
+\subsection{Lookup in redundant binary lists}
 \label{sec:redundant-index}
 For the redundant lists of Section~\ref{sec:redundant-binary}, only the clauses for |three| need to be added.
 Its three elements occupy positions |0|, |1|, and |2|; later positions have offset |i - 3| into the paired tail:
@@ -53,12 +54,14 @@ Its three elements occupy positions |0|, |1|, and |2|; later positions have offs
     | odd  (i - 3) = proj₂ (lookup xs ((i - 3) div 2)) {-"~~."-}
 \end{spec}
 The same bound calculation applies with |d = 3|, and the worst-case cost remains $O(\log N)$.
+Redundancy allows the same sequence to be grouped in different ways. 
+A position still counts elements from the front, and lookup follows the grouping present in the given list.
 
 \subsection{Lookup in double-ended queues}
 \label{sec:symmetric-index}
 
 The symmetric representation of Section~\ref{sec:sym-binary} gives a deque with elements at both ends.
-We write |nil| for the empty container, |[ x ]| for a singleton, and |f ⟨ xs ⟩ r| for a deep container with front digit |f|, paired middle |xs|, and rear digit |r|.\todo{placeholder, no constructor in section 3}
+For the container induced by Section 3's representation, we use the following notation: |nil| for the empty container, |[ x ]| for a singleton, and |f ⟨ xs ⟩ r| for a deep container with front digit |f|, paired middle |xs|, and rear digit |r|.\todo{placeholder, no constructor in section 3}
 For an outer digit |f|, |size f| is its number of elements: |1| for |one|, |2| for |two|, or |3| for |three|.
 We also match positions from the rear using |opposite|: within a bound |N|, |opposite i| denotes |N - 1 - i|.
 Thus |opposite 0| is the last position, |opposite 1| the position before it, and so on.
@@ -99,8 +102,8 @@ Position |1| is the first middle position: subtracting |p| leaves |0|, so the re
 Position |3 = opposite 1| matches the first element of the rear |two| and returns |d|; position |4 = opposite 0| returns |e|.\todo{a graph example?}
 
 Selection in either outer digit takes constant time.
-Let |k = min i (N - 1 - i)| be the number of elements between the selected element and the nearer end.
-Each recursive step subtracts the outer digits' sizes and halves the remaining distances to both ends, so lookup takes $O(1 + \log(k + 1))$ time, and hence $O(\log N)$ in the worst case.
+Each recursive call visits a middle with at most half as many positions.
+As in the one-sided case, lookup takes $O(\log N)$ time in the worst case, assuming constant-time integer arithmetic.
 
 \subsection{Lookup in Finger Tree}
 \todo{finger tree lookup}
