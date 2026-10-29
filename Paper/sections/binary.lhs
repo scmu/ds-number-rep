@@ -22,7 +22,7 @@ data Binary  = [] | Digit ∷ Binary {-"~~."-}
 To manifest its connection with cons-lists, in this pearl we present binary numbers least-significant digit first.
 For example, |D1 ∷ D0 ∷ D1 ∷ D1 ∷ B0| denotes $1 \times 2^0 + 0 \times 2^1 + 1 \times 2^2 + 1 \times 2^3 =$ $1 + 4 + 8 = 13$.
 One may already have noticed a potential problem: a |Binary| may have a long sequence of trailing |D0|'s that contributes nothing.
-For example, while |D1 ∷ D1 ∷ B0| denotes $4$, so does |D1 ∷ D1 ∷ D0 ∷ D0 ... B0|, and when we process a number left-to-right we do not know whether we end up with all |D0|'s.
+For example, while |D1 ∷ D1 ∷ B0| denotes $3$, so does |D1 ∷ D1 ∷ D0 ∷ D0 ... B0|, and when we process a number left-to-right we do not know whether we end up with all |D0|'s.
 There are several approaches we can take to avoid the trailing zeros, but we will keep it simple for now, before moving on to another representation.
 
 The definitions above induce two datatypes, respectively indexed by |Digit| and |Binary|:
@@ -109,7 +109,7 @@ Decrement does the reverse: when decrementing |D1 ∷ n|, we borrow a $1$ from |
 
 Having |inc| and |dec|, one of the ways to define addition of two |Binary|s is given below:
 \begin{spec}
-add : Binary -> Binary
+add : Binary -> Binary -> Binary
 add B0  n = n
 add m   n = inc (add (dec m) n) {-"~~."-}
 \end{spec}

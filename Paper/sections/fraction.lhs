@@ -27,7 +27,7 @@ Let |n = | $7 =$ |D2 ⟨ D1 ⟨ B0 ⟩ D1 ⟩ D1|. The result of |add m n| can b
  D2 ⟨ D2 ⟨ D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-} ⟩ D1 ⟩ D1 {-"~~,"-}
 \end{spec}
 which reprsents $24$.
-The two |D2|'s on the lefthand side are taken from |n|, while the two |D1|'s from the righthand side are from |m|.
+The two |D2|'s on the lefthand side are taken from |m|, while the two |D1|'s from the righthand side are from |n|.
 One can imagine the possibilty of a digit-by-digit implementation of |add| that traverses through the structures of |m| and |n| while constructing the result.
 The |D1 ⟨ B0 ⟩ D2{-"\!\frac{3}{4}"-}| in the middle represents $(1 + 2\frac{3}{4})\times 2^2 = 15$.
 
@@ -111,6 +111,7 @@ When the leftmost digit is saturated (|D3 g h i|), we keep |D2 f g|, pair up the
 The function |incR'|, which adds a |Sesq| at the right end, is defined symmetrically.
 
 While |incL' f| adds a |Sesq| to a number, |decL| removes the leftmost |Sesq| from a number:
+\todo{We actually needs D4 for the amortization cost}
 \begin{code}
   decL : ∀ {n} → Binary n → Binary n
   decL B0                            = B0
@@ -167,12 +168,12 @@ add3 : ∀ {n} → Binary n → Digit' n → Binary n → Binary n {-"~~."-}
 %format yf = "{\Var y}_{\mathsf f}"
 %format yr = "{\Var y}_{\mathsf r}"
 Given the flexibility of factional digits, the function |add3| turns out to be surprisingly simple.
-Let |addDL : ∀ {n} → Digit' → Binary n → Binary n| add a digit to a number (by repeatedly calling |incL'|), and let |addDR| be its righthand side counterpart.
+Let |addDL : ∀ {n} → Digit' n → Binary n → Binary n| add a digit to a number (by repeatedly calling |incL'|), and let |addDR| be its righthand side counterpart.
 The base cases of |add3|, where at least one of the numbers is |B0| or |B1|, are easy to define:
 \begin{code}
 add3 B0      d y       = addDL d y
 add3 (B1 f)  d y       = incL' f (addDL d y)
-add3 x       d B0      = addDR xd
+add3 x       d B0      = addDR x d
 add3 x       d (B1 f)  = incR' (addDR x d) f {-"~~."-}
 \end{code}
 The last case is when both numbers are |_⟨_⟩_|:
