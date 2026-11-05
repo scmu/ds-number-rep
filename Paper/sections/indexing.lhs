@@ -37,7 +37,7 @@ To look up position |4|, subtract one at the front digit, leaving offset |3|.
 The recursive lookup at |3 div 2 = 1| returns the pair |(d , e)| from the tail's |two| digit.
 Since |3| is odd, |proj₂| selects |e|.
 
-This halving of positions is the counterpart of the doubling of element types in Section~2: a tail element has type |A × A|, so it accounts for two consecutive positions at the current level.
+Since the tail stores pairs, dividing the remaining offset by two locates a pair, and its parity selects one of the two elements.
 Selecting a local element or projecting a pair takes constant time, and each recursive call visits a tail with at most half as many positions.
 Thus lookup in a list of size |N| takes $O(\log N)$ time in the worst case.
 
@@ -105,5 +105,7 @@ Selection in either outer digit takes constant time.
 Each recursive call visits a middle with at most half as many positions.
 As in the one-sided case, lookup takes $O(\log N)$ time in the worst case, assuming constant-time integer arithmetic.
 
-\subsection{Lookup in Finger Tree}
+\subsection{Lookup in finger trees}
 \todo{finger tree lookup}
+
+With stored subtree sizes, constant-time size access, and constant-time integer arithmetic, lookup takes $O(\log N)$ time along the spine and through the selected tree.
